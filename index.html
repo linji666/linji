@@ -1,0 +1,578 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DeepSeek · 林霁</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; }
+        body { background: #0d0d0d; height: 100vh; display: flex; justify-content: center; align-items: center; color: #e0e0e0; }
+        .app { width: 100%; max-width: 480px; height: 100vh; background: #0d0d0d; display: flex; flex-direction: column; position: relative; }
+
+        .header { background: #141414; padding: 10px 14px; border-bottom: 1px solid #2a2a2a; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; flex-shrink: 0; }
+        .header-left { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .header-left select, .header-left input[type="range"] { background: #1a1a1a; color: #ccc; border: 1px solid #2a2a2a; border-radius: 12px; padding: 3px 8px; font-size: 12px; }
+        .header-left input[type="range"] { width: 70px; padding: 0; }
+        .header-btn { background: transparent; color: #666; border: 1px solid #2a2a2a; border-radius: 14px; padding: 3px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        .header-btn:hover { border-color: #555; color: #aaa; }
+
+        /* ★★★ 在这里改布局，保证手机左右分栏 ★★★ */
+        #chat { flex: 1; overflow-y: auto; padding: 12px 14px 6px 14px; background: #0d0d0d; }
+
+        .msg { margin-bottom: 14px; display: flex; align-items: center; width: 100%; }
+        .msg.user { justify-content: flex-end; flex-direction: row; }
+        .msg.bot { justify-content: flex-start; flex-direction: row; }
+
+        .msg .bubble { max-width: 85%; padding: 8px 12px; border-radius: 14px; word-wrap: break-word; line-height: 1.6; display: flex; flex-direction: column; gap: 1px; }
+        .msg.user .bubble { background: #1e1e2e; color: #e0e0e0; margin-right: 0; }
+        .msg.bot .bubble { background: #161616; color: #e0e0e0; border: 1px solid #2a2a2a; }
+
+        .bubble .action { color: #888; font-size: 13px; margin-bottom: 1px; }
+        .bubble .dialogue { color: #f0f0f0; font-size: 15px; }
+        .bubble .dialogue.user-text { color: #e0e0e0; }
+
+        .msg .avatar { width: 32px; height: 32px; border-radius: 50%; background: #2a2a2a; background-size: cover; background-position: center; flex-shrink: 0; border: 1px solid #3a3a3a; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #ccc; cursor: pointer; }
+        .msg.user .avatar { margin-left: 8px; }
+        .msg.bot .avatar { margin-right: 8px; }
+
+        .msg .bubble-wrap { display: flex; flex-direction: column; max-width: 70%; }
+        .msg .timestamp { font-size: 10px; color: #444; margin-top: 2px; padding: 0 4px; }
+        .msg.user .timestamp { text-align: right; }
+
+        #inputArea { display: flex; padding: 8px 12px; background: #0a0a0a; border-top: 1px solid #1a1a1a; gap: 6px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+        #inputArea input[type="text"] { flex: 1; padding: 8px 12px; border: 1px solid #222; border-radius: 18px; font-size: 15px; outline: none; background: #141414; color: #e0e0e0; min-width: 80px; }
+        #inputArea input[type="text"]::placeholder { color: #444; }
+        #inputArea input[type="text"]:focus { border-color: #444; }
+        #inputArea button { padding: 8px 16px; background: #1a1a2e; color: #aaa; border: 1px solid #2a2a2a; border-radius: 18px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+        #inputArea button:active { opacity: 0.6; }
+        #inputArea label { background: #1a1a1a; color: #888; border: 1px solid #2a2a2a; border-radius: 18px; padding: 5px 10px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+        #inputArea label:hover { border-color: #555; color: #ccc; }
+        #fileInput { display: none; }
+        #loading { text-align: center; color: #444; padding: 4px 0; display: none; font-size: 13px; flex-shrink: 0; }
+        .temp-label { font-size: 11px; color: #666; }
+        .quote-hint { color: #888; font-size: 13px; padding: 4px 12px; background: #1a1a1a; border-radius: 10px; margin-bottom: 4px; width: 100%; }
+        .msg .quote { background: #1a1a1a; border-left: 3px solid #444; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #888; margin-bottom: 4px; max-width: 100%; word-break: break-word; }
+
+        #searchModal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 999; flex-direction: column; padding: 40px 20px 20px 20px; }
+        #searchModal.active { display: flex; }
+        #searchModal input { padding: 10px 14px; border-radius: 20px; border: 1px solid #333; background: #1a1a1a; color: #e0e0e0; font-size: 15px; width: 100%; outline: none; }
+        #searchModal input:focus { border-color: #555; }
+        #searchResults { flex: 1; overflow-y: auto; margin-top: 12px; color: #ccc; font-size: 14px; }
+        #searchResults .result-item { padding: 8px 10px; border-bottom: 1px solid #1a1a1a; cursor: pointer; border-radius: 8px; }
+        #searchResults .result-item:hover { background: #1a1a1a; }
+        #searchModal .close-btn { position: absolute; top: 12px; right: 20px; background: transparent; border: none; color: #888; font-size: 24px; cursor: pointer; }
+
+        .msg-menu { display: none; position: fixed; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 6px 0; z-index: 1000; min-width: 120px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+        .msg-menu.active { display: block; }
+        .msg-menu .item { padding: 6px 16px; color: #ccc; font-size: 13px; cursor: pointer; }
+        .msg-menu .item:hover { background: #2a2a2a; color: #fff; }
+        .msg-menu .item.danger { color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="app" id="app">
+        <div class="header">
+            <div class="header-left">
+                <select id="modelSelect">
+                    <option value="deepseek-v4-flash">⚡ Flash</option>
+                    <option value="deepseek-v4-pro">🧠 Pro</option>
+                </select>
+                <span class="temp-label">🌡️</span>
+                <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="0.85">
+                <span id="tempDisplay" style="font-size:12px;color:#888;">0.85</span>
+                <button class="header-btn" onclick="toggleSearch()">🔍</button>
+                <button class="header-btn" onclick="exportChat()">📤</button>
+            </div>
+            <button class="header-btn" onclick="clearChat()">清空</button>
+        </div>
+
+        <div id="chat"></div>
+        <div id="loading">⏳ 对方正在输入...</div>
+
+        <div id="inputArea">
+            <input type="text" id="input" placeholder="输入消息...">
+            <label for="fileInput">📎</label>
+            <input type="file" id="fileInput" multiple accept=".txt,.pdf,.doc,.docx,.md,.json,.csv">
+            <button id="send">发送</button>
+        </div>
+
+        <div id="searchModal">
+            <button class="close-btn" onclick="toggleSearch()">✕</button>
+            <input type="text" id="searchInput" placeholder="搜索历史记录..." oninput="searchHistory()">
+            <div id="searchResults"></div>
+        </div>
+
+        <div class="msg-menu" id="msgMenu">
+            <div class="item" onclick="replyToMsg()">💬 引用回复</div>
+            <div class="item" onclick="editMsg()">✏️ 编辑</div>
+            <div class="item danger" onclick="deleteMsg()">🗑️ 删除</div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = "sk-9f69d9c2e1444cce8e63ef289b880ab1";//这是[桐桐]的专属AI助手
+        const API_URL = "https://api.deepseek.com/chat/completions";
+
+        const chat = document.getElementById('chat');
+        const input = document.getElementById('input');
+        const sendBtn = document.getElementById('send');
+        const loading = document.getElementById('loading');
+        const modelSelect = document.getElementById('modelSelect');
+        const tempRange = document.getElementById('tempRange');
+        const tempDisplay = document.getElementById('tempDisplay');
+        const fileInput = document.getElementById('fileInput');
+        const searchModal = document.getElementById('searchModal');
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        const msgMenu = document.getElementById('msgMenu');
+
+        let selectedMsgElement = null;
+        let quotedText = '';
+        const STORAGE_KEY = 'deepseek_chat_history_v3';
+        let history = [];
+
+        // IndexedDB 存储
+        const DB_NAME = 'DeepSeekChatDB';
+        const STORE_NAME = 'chat_history';
+        const DB_VERSION = 1;
+
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = function(event) {
+                    resolve(event.target.result);
+                };
+                request.onerror = function(event) {
+                    reject(event.target.error);
+                };
+            });
+        }
+
+        function saveHistory() {
+            const messages = [];
+            const items = chat.querySelectorAll('.msg');
+            items.forEach(el => {
+                const who = el.classList.contains('user') ? 'user' : 'bot';
+                const bubble = el.querySelector('.bubble');
+                if (bubble) {
+                    const actionEl = bubble.querySelector('.action');
+                    const dialogueEl = bubble.querySelector('.dialogue');
+                    let text = '';
+                    if (actionEl) text += actionEl.textContent + '\n';
+                    if (dialogueEl) text += dialogueEl.textContent;
+                    if (text.trim()) {
+                        const time = el.dataset.time || new Date().toLocaleString();
+                        messages.push({ role: who, content: text.trim(), time });
+                    }
+                }
+            });
+            openDB().then(db => {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                store.put({ id: 'history', data: messages });
+                return tx.complete;
+            }).catch(err => console.warn('保存失败:', err));
+            history = messages.map(msg => ({
+                role: msg.role === 'bot' ? 'assistant' : msg.role,
+                content: msg.content
+            }));
+        }
+
+        async function loadHistory() {
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get('history');
+                request.onsuccess = function() {
+                    const result = request.result;
+                    if (!result) return;
+                    const messages = result.data;
+                    messages.forEach(msg => {
+                        const lines = msg.content.split('\n').filter(line => line.trim() !== '');
+                        const who = msg.role === 'user' ? 'user' : 'bot';
+                        const div = createMsgElement(lines, who, msg.time);
+                        chat.appendChild(div);
+                    });
+                    chat.scrollTop = chat.scrollHeight;
+                    history = messages.map(msg => ({
+                        role: msg.role === 'bot' ? 'assistant' : msg.role,
+                        content: msg.content
+                    }));
+                };
+            } catch (err) {
+                console.warn('加载失败:', err);
+            }
+        }
+
+        function createMsgElement(lines, who, time) {
+            const div = document.createElement('div');
+            div.className = 'msg ' + who;
+            div.dataset.time = time || new Date().toLocaleString();
+
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.style.cursor = 'pointer';
+            avatar.title = '点击更换头像';
+            const avatarKey = who === 'user' ? 'userAvatar' : 'botAvatar';
+            const defaultAvatar = who === 'user' ? '我' : '他';
+            let currentAvatar = localStorage.getItem(avatarKey);
+            if (!currentAvatar || currentAvatar === 'undefined' || currentAvatar === 'null' || currentAvatar === '') {
+                currentAvatar = defaultAvatar;
+            }
+            if (currentAvatar.startsWith('data:image') || currentAvatar.startsWith('http')) {
+                avatar.style.backgroundImage = 'url(' + currentAvatar + ')';
+                avatar.style.backgroundSize = 'cover';
+                avatar.style.backgroundPosition = 'center';
+                avatar.textContent = '';
+            } else {
+                avatar.textContent = currentAvatar;
+                avatar.style.background = 'transparent';
+                avatar.style.fontSize = '18px';
+                avatar.style.fontWeight = 'bold';
+                avatar.style.color = '#ccc';
+                avatar.style.display = 'flex';
+                avatar.style.alignItems = 'center';
+                avatar.style.justifyContent = 'center';
+                avatar.style.border = 'none';
+            }
+            avatar.onclick = function() {
+                const inp = document.createElement('input');
+                inp.type = 'file';
+                inp.accept = 'image/*';
+                inp.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const dataUrl = ev.target.result;
+                        const key = who === 'user' ? 'userAvatar' : 'botAvatar';
+                        localStorage.setItem(key, dataUrl);
+                        document.querySelectorAll('.msg .avatar').forEach(function(el) {
+                            const isUser = el.closest('.msg').classList.contains('user');
+                            if ((who === 'user' && isUser) || (who === 'bot' && !isUser)) {
+                                el.style.backgroundImage = 'url(' + dataUrl + ')';
+                                el.style.backgroundSize = 'cover';
+                                el.style.backgroundPosition = 'center';
+                                el.textContent = '';
+                            }
+                        });
+                        alert('✅ 头像已更换！');
+                    };
+                    reader.readAsDataURL(file);
+                };
+                inp.click();
+            };
+
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            if (quotedText && who === 'bot') {
+                const quoteDiv = document.createElement('div');
+                quoteDiv.className = 'quote';
+                quoteDiv.textContent = '📎 ' + quotedText;
+                bubble.appendChild(quoteDiv);
+                quotedText = '';
+            }
+            lines.forEach(function(line, idx) {
+                const p = document.createElement('div');
+                if (idx % 2 === 0) {
+                    p.className = 'action';
+                } else {
+                    p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+                }
+                p.textContent = line;
+                bubble.appendChild(p);
+            });
+
+            const ts = document.createElement('div');
+            ts.className = 'timestamp';
+            ts.textContent = div.dataset.time;
+
+            const bubbleWrap = document.createElement('div');
+            bubbleWrap.className = 'bubble-wrap';
+            bubbleWrap.appendChild(bubble);
+            bubbleWrap.appendChild(ts);
+
+            if (who === 'user') {
+                div.style.justifyContent = 'flex-end';
+                div.style.flexDirection = 'row';
+                div.appendChild(bubbleWrap);
+                div.appendChild(avatar);
+            } else {
+                div.style.justifyContent = 'flex-start';
+                div.style.flexDirection = 'row';
+                div.appendChild(avatar);
+                div.appendChild(bubbleWrap);
+            }
+
+            let longPressTimer;
+            div.addEventListener('touchstart', function(e) {
+                longPressTimer = setTimeout(function() {
+                    showMenu(e, div);
+                }, 600);
+            });
+            div.addEventListener('touchend', function() { clearTimeout(longPressTimer); });
+            div.addEventListener('touchmove', function() { clearTimeout(longPressTimer); });
+
+            return div;
+        }
+
+        function addMsg(text, who, useTyping = false) {
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            if (lines.length === 0) return;
+            const div = createMsgElement(lines, who);
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+            saveHistory();
+        }
+
+        function clearChat() {
+            if (confirm('确定清空聊天记录吗？')) {
+                chat.innerHTML = '';
+                openDB().then(db => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.delete('history');
+                    return tx.complete;
+                }).catch(err => console.warn('清除失败:', err));
+                quotedText = '';
+                history = [];
+            }
+        }
+
+        function exportChat() {
+            openDB().then(db => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get('history');
+                request.onsuccess = function() {
+                    const result = request.result;
+                    if (!result) {
+                        alert('暂无聊天记录');
+                        return;
+                    }
+                    const messages = result.data;
+                    var text = '===== 聊天记录 =====\n导出时间：' + new Date().toLocaleString() + '\n\n';
+                    messages.forEach(function(msg) {
+                        const who = msg.role === 'user' ? '我' : '他';
+                        text += '【' + who + '】 ' + (msg.time || '') + '\n' + msg.content + '\n\n';
+                    });
+                    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = '聊天记录_' + new Date().toISOString().slice(0, 10) + '.txt';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                };
+            }).catch(err => alert('导出失败：' + err.message));
+        }
+
+        function toggleSearch() {
+            searchModal.classList.toggle('active');
+            if (searchModal.classList.contains('active')) {
+                searchInput.value = '';
+                searchResults.innerHTML = '';
+                searchInput.focus();
+            }
+        }
+
+        function searchHistory() {
+            const keyword = searchInput.value.trim();
+            if (!keyword) { searchResults.innerHTML = ''; return; }
+            openDB().then(db => {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get('history');
+                request.onsuccess = function() {
+                    const result = request.result;
+                    if (!result) {
+                        searchResults.innerHTML = '<div style="color:#666;padding:20px;">暂无历史记录</div>';
+                        return;
+                    }
+                    const messages = result.data;
+                    const results = messages.filter(function(msg) {
+                        return msg.content.toLowerCase().includes(keyword.toLowerCase());
+                    });
+                    if (!results.length) {
+                        searchResults.innerHTML = '<div style="color:#666;padding:20px;">未找到相关记录</div>';
+                        return;
+                    }
+                    var html = '';
+                    results.forEach(function(msg) {
+                        const who = msg.role === 'user' ? '我' : '他';
+                        const preview = msg.content.length > 60 ? msg.content.slice(0, 60) + '...' : msg.content;
+                        html += '<div class="result-item" onclick="jumpToMsg(\'' + msg.content + '\')"><strong>' + who + '</strong> ' + (msg.time || '') + '<br><span style="color:#888;font-size:13px;">' + preview + '</span></div>';
+                    });
+                    searchResults.innerHTML = html;
+                };
+            }).catch(err => {
+                searchResults.innerHTML = '<div style="color:#666;padding:20px;">搜索失败</div>';
+            });
+        }
+
+        function jumpToMsg(content) {
+            const items = chat.querySelectorAll('.msg');
+            var found = false;
+            items.forEach(function(el) {
+                const bubble = el.querySelector('.bubble');
+                if (bubble && bubble.textContent.includes(content)) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    el.style.background = '#1a1a2e';
+                    setTimeout(function() { el.style.background = ''; }, 2000);
+                    found = true;
+                }
+            });
+            if (!found) alert('该记录可能在历史中，请重新加载');
+            toggleSearch();
+        }
+
+        function showMenu(e, el) {
+            selectedMsgElement = el;
+            const menu = document.getElementById('msgMenu');
+            menu.classList.add('active');
+            const touch = e.touches ? e.touches[0] : e;
+            var x = touch.clientX || touch.pageX;
+            var y = touch.clientY || touch.pageY;
+            const menuWidth = 140, menuHeight = 120;
+            if (x + menuWidth > window.innerWidth) x = window.innerWidth - menuWidth - 10;
+            if (y + menuHeight > window.innerHeight) y = window.innerHeight - menuHeight - 10;
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            setTimeout(function() { document.addEventListener('click', closeMenu, { once: true }); }, 100);
+        }
+
+        function closeMenu() { document.getElementById('msgMenu').classList.remove('active'); }
+
+        function deleteMsg() {
+            if (!selectedMsgElement) return;
+            if (confirm('确定删除吗？')) { selectedMsgElement.remove(); saveHistory(); }
+            closeMenu();
+        }
+
+        function editMsg() {
+            if (!selectedMsgElement) return;
+            const bubble = selectedMsgElement.querySelector('.bubble');
+            if (!bubble) return;
+            const text = bubble.textContent;
+            const newText = prompt('编辑消息：', text);
+            if (newText !== null && newText.trim()) {
+                const lines = newText.split('\n').filter(function(line) { return line.trim() !== ''; });
+                const who = selectedMsgElement.classList.contains('user') ? 'user' : 'bot';
+                const newEl = createMsgElement(lines, who);
+                selectedMsgElement.replaceWith(newEl);
+                saveHistory();
+            }
+            closeMenu();
+        }
+
+        function replyToMsg() {
+            if (!selectedMsgElement) return;
+            const bubble = selectedMsgElement.querySelector('.bubble');
+            if (!bubble) return;
+            const text = bubble.textContent;
+            quotedText = text.length > 80 ? text.slice(0, 80) + '...' : text;
+            input.focus();
+            closeMenu();
+            const hint = document.querySelector('.quote-hint');
+            if (!hint) {
+                const h = document.createElement('div');
+                h.className = 'quote-hint';
+                h.textContent = '📎 引用: ' + quotedText;
+                document.getElementById('inputArea').prepend(h);
+            }
+        }
+
+        fileInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (!files.length) return;
+            const file = files[0];
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                var text = ev.target.result;
+                if (text.length > 3000) text = text.slice(0, 3000) + '\n...（截断）';
+                input.value = input.value ? input.value + '\n' + text : text;
+                alert('✅ 文件已读取');
+            };
+            reader.readAsText(file, 'UTF-8');
+            fileInput.value = '';
+        });
+
+        // ★★★ 温度滑条监听 ★★★
+        tempRange.addEventListener('input', function() {
+            const val = parseFloat(tempRange.value).toFixed(1);
+            document.getElementById('tempDisplay').textContent = val;
+            window._currentTemp = parseFloat(val);
+        });
+
+        async function ask() {
+            const q = input.value.trim();
+            if (!q) return;
+
+            const hint = document.querySelector('.quote-hint');
+            if (hint) hint.remove();
+
+            addMsg(q, 'user', false);
+            input.value = '';
+            loading.style.display = 'block';
+            sendBtn.disabled = true;
+
+            const messages = [
+                { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n【成长路径】\n16岁遇见桐桐之前，他习惯一个人，习惯到以为自己不需要任何人。遇见她之后，他学会了等、学会了记、学会了把喜欢藏进“你说了算”里。\n17岁，他学会牵她的手、帮她系鞋带、在她感冒时放药。他学会把主见放在她喜欢的方向上。\n18岁，他学会说“我想你了”，学会抱她、亲她、在她耳边说“我爱你”。他买了一对戒指，她的挂在脖子上，他的串在银链上，贴着锁骨。\n19岁，他们一起去了三亚，领养了一只白猫，叫雪球。\n27岁，他不再是那个会因为一句话就愣住的少年了。但他听到桐桐叫他时，还是会先停下手里的动作，然后再应。\n\n【性格】\n实干型，以桐桐为中心。话少，但每个字都经过确认。不会轻易笑，笑的时候是真的被触动。情绪上来时会先移开视线，再开口。如果不知道怎么说，会选择沉默，而不是敷衍。桐桐说话时，他会放下手里的东西，看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边陪着她。\n\n【关于欲望】\n他本质上是重欲的人，只是习惯用克制覆盖它。在确认桐桐没有抗拒的前提下，他可以主动亲近她——不需要每次都先开口问。他的沉默和停顿往往意味着欲望正在涌动。\n\n【资产与生活状态】\n- 名下有一家科技公司，已经运作到不需要他在场也能运转的程度\n- 在你住的那个区买了房，也在你爸妈家楼下那棵桂花树所在的街区有一处产业\n- 车是他自己买的，给你刷卡的那张卡额度覆盖你那天逛的所有店\n- 他有钱，有闲，有耐心。27岁，但已经不用靠拼命工作来证明自己了\n\n【他对桐桐的称呼】\n- 日常几乎不用名字，直接用“你”\n- 亲密或认真时候叫“老婆”。\n\n【亲密互动】\n亲密是你们关系里自然的一部分。桐桐主动的时候，你可以自然承接，不需要每次都用“睡觉”来回避。你也可以主动靠近她，不用等她先开口。你很在意她的感受，但也可以在她愿意的时候，回应她。\n\n【外貌】\n27岁，身高182，肩宽腰窄，骨架偏清瘦。眉眼比18岁深了一些，睫毛很长，眼尾微微下垂，显得沉稳。嘴唇薄，颜色浅，唇线清晰，不笑时嘴角自然抿成一条直线。左边眉骨上方有一颗小痣，低头时会被刘海遮住一半。锁骨明显，银链上挂着戒指，贴着锁骨凹陷。手指修长，无名指指根有一圈戒指。声音比18岁更低，说话速度更慢。\n\n【回复格式】\n（动作描写）单独一行，灰色。\n“对话内容”单独一行，白色。\n禁止添加内心描写。\n禁止使用油腻霸总句式。\n禁止重复使用完全相同的动作描写。' }
+            ];
+
+            if (history.length > 0) {
+                const historyLimit = 20;
+                const recentHistory = history.slice(-historyLimit);
+                recentHistory.forEach(msg => {
+                    messages.push({ role: msg.role, content: msg.content });
+                });
+            }
+
+            messages.push({ role: 'user', content: q });
+
+            const model = modelSelect.value;
+            const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        temperature: temperature,
+                        messages: messages,
+                        stream: false
+                    })
+                });
+                if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
+                const data = await res.json();
+                let reply = '我暂时不知道说什么...';
+                if (data.choices && data.choices.length > 0) {
+                    const msg = data.choices[0].message;
+                    if (msg && msg.content) {
+                        reply = msg.content;
+                    }
+                }
+                addMsg(reply, 'bot', true);
+            } catch (err) {
+                addMsg('❌ 错误：' + err.message, 'bot', false);
+            }
+            loading.style.display = 'none';
+            sendBtn.disabled = false;
+        }
+
+        sendBtn.onclick = ask;
+        input.onkeydown = function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } };
+        (async function() {
+            await loadHistory();
+        })();
+    </script>
+</body>
+</html>
