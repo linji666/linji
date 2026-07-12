@@ -179,6 +179,13 @@
                 store.put({ id: 'history', data: messages });
                 return tx.complete;
             }).catch(err => console.warn('保存失败:', err));
+             // 3. ★★★ 存到 Cloudflare KV ★★★
+    const url = 'https://linji.18665918439.workers.dev/api/history';
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messages })
+    }).catch(err => console.warn('云端保存失败:', err));
             history = messages.map(msg => ({
                 role: msg.role === 'bot' ? 'assistant' : msg.role,
                 content: msg.content
@@ -186,32 +193,47 @@
         }
 
         async function loadHistory() {
-            try {
-                const db = await openDB();
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const request = store.get('history');
-                request.onsuccess = function() {
-                    const result = request.result;
-                    if (!result) return;
-                    const messages = result.data;
-                    messages.forEach(msg => {
-                        const lines = msg.content.split('\n').filter(line => line.trim() !== '');
-                        const who = msg.role === 'user' ? 'user' : 'bot';
-                        const div = createMsgElement(lines, who, msg.time);
-                        chat.appendChild(div);
-                    });
-                    chat.scrollTop = chat.scrollHeight;
-                    history = messages.map(msg => ({
-                        role: msg.role === 'bot' ? 'assistant' : msg.role,
-                        content: msg.content
-                    }));
-                };
-            } catch (err) {
-                console.warn('加载失败:', err);
-            }
+    try {
+        // 1. 先尝试从 IndexedDB 读取
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const request = store.get('history');
+        
+        const result = await new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (result) {
+            displayMessages(result.data);
+            return;
         }
 
+        // 2. 从 Cloudflare KV 读取
+        const response = await fetch('https://linji.18665918439.workers.dev/api/history');
+        const data = await response.json();
+        if (data && data.messages) {
+            displayMessages(data.messages);
+        }
+    } catch (err) {
+        console.warn('加载失败:', err);
+    }
+}
+        function displayMessages(messages) {
+    messages.forEach(msg => {
+        const lines = msg.content.split('\n').filter(line => line.trim() !== '');
+        const who = msg.role === 'user' ? 'user' : 'bot';
+        const div = createMsgElement(lines, who, msg.time);
+        chat.appendChild(div);
+    });
+    chat.scrollTop = chat.scrollHeight;
+    history = messages.map(msg => ({
+        role: msg.role === 'bot' ? 'assistant' : msg.role,
+        content: msg.content
+    }));
+}
+                         
         function createMsgElement(lines, who, time) {
             const div = document.createElement('div');
             div.className = 'msg ' + who;
