@@ -518,6 +518,20 @@
             const hint = document.querySelector('.quote-hint');
             if (hint) hint.remove();
 
+            // ★★★ 检测链接并读取内容 ★★★
+    let userContent = q;
+const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
+if (urlMatch) {
+    const url = urlMatch[0];
+    try {
+        const res = await fetch(url);
+        const text = await res.text();
+        const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
+        userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
+    } catch (e) {
+        userContent = q + '\n（⚠️ 读取链接失败）';
+    }
+}
             addMsg(q, 'user', false);
             input.value = '';
             loading.style.display = 'block';
@@ -535,7 +549,7 @@
                 });
             }
 
-            messages.push({ role: 'user', content: q });
+            messages.push({ role: 'user', content: userContent });
 
             const model = modelSelect.value;
             const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
