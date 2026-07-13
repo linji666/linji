@@ -333,26 +333,84 @@
             return div;
         }
 
-        // ============================================================
-        //  addMsg（调用 createMsgElement，保留全部功能）
-        // ============================================================
-       function addMsg(text, who, useTyping = false) {
+     function addMsg(text, who, useTyping = false) {
     const safeText = String(text || '');
     console.log('addMsg收到的text:', safeText);
 
+    let lines = safeText.split('\n').filter(line => line.trim() !== '');
+    if (lines.length === 0) {
+        lines = [safeText];
+    }
+
     const div = document.createElement('div');
     div.className = 'msg ' + who;
-    
-    // ★★★ 加个气泡，确保文字可见 ★★★
+
+    // 头像
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    const avatarKey = who === 'user' ? 'userAvatar' : 'botAvatar';
+    const defaultAvatar = who === 'user' ? '我' : '他';
+    let currentAvatar = localStorage.getItem(avatarKey);
+    if (!currentAvatar || currentAvatar === 'undefined' || currentAvatar === 'null' || currentAvatar === '') {
+        currentAvatar = defaultAvatar;
+    }
+    if (currentAvatar.startsWith('data:image') || currentAvatar.startsWith('http')) {
+        avatar.style.backgroundImage = 'url(' + currentAvatar + ')';
+        avatar.style.backgroundSize = 'cover';
+        avatar.style.backgroundPosition = 'center';
+        avatar.textContent = '';
+    } else {
+        avatar.textContent = currentAvatar;
+        avatar.style.background = 'transparent';
+        avatar.style.fontSize = '18px';
+        avatar.style.fontWeight = 'bold';
+        avatar.style.color = '#ccc';
+        avatar.style.display = 'flex';
+        avatar.style.alignItems = 'center';
+        avatar.style.justifyContent = 'center';
+        avatar.style.border = 'none';
+    }
+
+    // 气泡（分行 + 颜色）
     const bubble = document.createElement('div');
     bubble.className = 'bubble';
-    const p = document.createElement('div');
-    p.className = 'dialogue';
-    p.textContent = safeText;
-    p.style.color = '#f0f0f0'; // 强制白色
-    bubble.appendChild(p);
-    div.appendChild(bubble);
-    
+    lines.forEach((line, idx) => {
+        const p = document.createElement('div');
+        if (idx % 2 === 0) {
+            p.className = 'action';
+            p.style.color = '#888';
+        } else {
+            p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+            p.style.color = '#f0f0f0';
+        }
+        p.textContent = line;
+        bubble.appendChild(p);
+    });
+
+    const ts = document.createElement('div');
+    ts.className = 'timestamp';
+    ts.textContent = new Date().toLocaleString();
+    ts.style.color = '#444';
+    ts.style.fontSize = '10px';
+    ts.style.marginTop = '2px';
+
+    const bubbleWrap = document.createElement('div');
+    bubbleWrap.className = 'bubble-wrap';
+    bubbleWrap.appendChild(bubble);
+    bubbleWrap.appendChild(ts);
+
+    if (who === 'user') {
+        div.style.justifyContent = 'flex-end';
+        div.style.flexDirection = 'row';
+        div.appendChild(bubbleWrap);
+        div.appendChild(avatar);
+    } else {
+        div.style.justifyContent = 'flex-start';
+        div.style.flexDirection = 'row';
+        div.appendChild(avatar);
+        div.appendChild(bubbleWrap);
+    }
+
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 
