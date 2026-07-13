@@ -629,6 +629,7 @@ if (urlMatch) {
                     })
                 });
                 if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
+                console.log('API返回：',data);
                 const data = await res.json();
                 let reply = '我暂时不知道说什么...';
                 if (data.choices && data.choices.length > 0) {
