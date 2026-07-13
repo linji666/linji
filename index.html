@@ -604,6 +604,7 @@
                         reply = msg.content;
                     }
                 }
+                console.log('提取的reply:',reply);
                 addMsg(reply, 'bot', true);
             } catch (err) {
                 addMsg('❌ 错误：' + err.message, 'bot', false);
