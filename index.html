@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
     <link rel="manifest" href="manifest.json">
@@ -17,25 +17,19 @@
         .header-btn { background: transparent; color: #666; border: 1px solid #2a2a2a; border-radius: 14px; padding: 3px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; }
         .header-btn:hover { border-color: #555; color: #aaa; }
 
-        /* ★★★ 在这里改布局，保证手机左右分栏 ★★★ */
         #chat { flex: 1; overflow-y: auto; padding: 12px 14px 6px 14px; background: #0d0d0d; }
-
         .msg { margin-bottom: 14px; display: flex; align-items: center; width: 100%; }
         .msg.user { justify-content: flex-end; flex-direction: row; }
         .msg.bot { justify-content: flex-start; flex-direction: row; }
-
         .msg .bubble { max-width: 85%; padding: 8px 12px; border-radius: 14px; word-wrap: break-word; line-height: 1.6; display: flex; flex-direction: column; gap: 1px; }
         .msg.user .bubble { background: #1e1e2e; color: #e0e0e0; margin-right: 0; }
         .msg.bot .bubble { background: #161616; color: #e0e0e0; border: 1px solid #2a2a2a; }
-
         .bubble .action { color: #888; font-size: 13px; margin-bottom: 1px; }
         .bubble .dialogue { color: #f0f0f0; font-size: 15px; }
         .bubble .dialogue.user-text { color: #e0e0e0; }
-
         .msg .avatar { width: 32px; height: 32px; border-radius: 50%; background: #2a2a2a; background-size: cover; background-position: center; flex-shrink: 0; border: 1px solid #3a3a3a; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; color: #ccc; cursor: pointer; }
         .msg.user .avatar { margin-left: 8px; }
         .msg.bot .avatar { margin-right: 8px; }
-
         .msg .bubble-wrap { display: flex; flex-direction: column; max-width: 70%; }
         .msg .timestamp { font-size: 10px; color: #444; margin-top: 2px; padding: 0 4px; }
         .msg.user .timestamp { text-align: right; }
@@ -53,7 +47,6 @@
         .temp-label { font-size: 11px; color: #666; }
         .quote-hint { color: #888; font-size: 13px; padding: 4px 12px; background: #1a1a1a; border-radius: 10px; margin-bottom: 4px; width: 100%; }
         .msg .quote { background: #1a1a1a; border-left: 3px solid #444; padding: 4px 8px; border-radius: 6px; font-size: 12px; color: #888; margin-bottom: 4px; max-width: 100%; word-break: break-word; }
-
         #searchModal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 999; flex-direction: column; padding: 40px 20px 20px 20px; }
         #searchModal.active { display: flex; }
         #searchModal input { padding: 10px 14px; border-radius: 20px; border: 1px solid #333; background: #1a1a1a; color: #e0e0e0; font-size: 15px; width: 100%; outline: none; }
@@ -62,7 +55,6 @@
         #searchResults .result-item { padding: 8px 10px; border-bottom: 1px solid #1a1a1a; cursor: pointer; border-radius: 8px; }
         #searchResults .result-item:hover { background: #1a1a1a; }
         #searchModal .close-btn { position: absolute; top: 12px; right: 20px; background: transparent; border: none; color: #888; font-size: 24px; cursor: pointer; }
-
         .msg-menu { display: none; position: fixed; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 6px 0; z-index: 1000; min-width: 120px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
         .msg-menu.active { display: block; }
         .msg-menu .item { padding: 6px 16px; color: #ccc; font-size: 13px; cursor: pointer; }
@@ -86,30 +78,25 @@
             </div>
             <button class="header-btn" onclick="clearChat()">清空</button>
         </div>
-
         <div id="chat"></div>
         <div id="loading">⏳ 对方正在输入...</div>
-
         <div id="inputArea">
             <input type="text" id="input" placeholder="输入消息...">
             <label for="fileInput">📎</label>
             <input type="file" id="fileInput" multiple accept=".txt,.pdf,.doc,.docx,.md,.json,.csv">
             <button id="send">发送</button>
         </div>
-
         <div id="searchModal">
             <button class="close-btn" onclick="toggleSearch()">✕</button>
             <input type="text" id="searchInput" placeholder="搜索历史记录..." oninput="searchHistory()">
             <div id="searchResults"></div>
         </div>
-
         <div class="msg-menu" id="msgMenu">
             <div class="item" onclick="replyToMsg()">💬 引用回复</div>
             <div class="item" onclick="editMsg()">✏️ 编辑</div>
             <div class="item danger" onclick="deleteMsg()">🗑️ 删除</div>
         </div>
     </div>
-
     <script>
         const API_KEY = "sk-9f69d9c2e1444cce8e63ef289b880ab1";//这是[桐桐]的专属AI助手
         const API_URL = "https://api.deepseek.com/chat/completions";
@@ -132,7 +119,6 @@
         const STORAGE_KEY = 'deepseek_chat_history_v3';
         let history = [];
 
-        // IndexedDB 存储
         const DB_NAME = 'DeepSeekChatDB';
         const STORE_NAME = 'chat_history';
         const DB_VERSION = 1;
@@ -179,13 +165,6 @@
                 store.put({ id: 'history', data: messages });
                 return tx.complete;
             }).catch(err => console.warn('保存失败:', err));
-             // 3. ★★★ 存到 Cloudflare KV ★★★
-    const url = 'https://linji-history.18665918439.workers.dev/api/history';
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages })
-    }).catch(err => console.warn('云端保存失败:', err));
             history = messages.map(msg => ({
                 role: msg.role === 'bot' ? 'assistant' : msg.role,
                 content: msg.content
@@ -193,47 +172,37 @@
         }
 
         async function loadHistory() {
-    try {
-        // 1. 先尝试从 IndexedDB 读取
-        const db = await openDB();
-        const tx = db.transaction(STORE_NAME, 'readonly');
-        const store = tx.objectStore(STORE_NAME);
-        const request = store.get('history');
-        
-        const result = await new Promise((resolve, reject) => {
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-        });
-
-        if (result) {
-            displayMessages(result.data);
-            return;
+            try {
+                const db = await openDB();
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const request = store.get('history');
+                const result = await new Promise((resolve, reject) => {
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+                if (result) {
+                    displayMessages(result.data);
+                }
+            } catch (err) {
+                console.warn('加载失败:', err);
+            }
         }
 
-        // 2. 从 Cloudflare KV 读取
-        const response = await fetch('https://linji-history.18665918439.workers.dev/api/history');
-        const data = await response.json();
-        if (data && data.messages) {
-            displayMessages(data.messages);
-        }
-    } catch (err) {
-        console.warn('加载失败:', err);
-    }
-}
         function displayMessages(messages) {
-    messages.forEach(msg => {
-        const lines = msg.content.split('\n').filter(line => line.trim() !== '');
-        const who = msg.role === 'user' ? 'user' : 'bot';
-        const div = createMsgElement(lines, who, msg.time);
-        chat.appendChild(div);
-    });
-    chat.scrollTop = chat.scrollHeight;
-    history = messages.map(msg => ({
-        role: msg.role === 'bot' ? 'assistant' : msg.role,
-        content: msg.content
-    }));
-}
-                         
+            messages.forEach(msg => {
+                const lines = msg.content.split('\n').filter(line => line.trim() !== '');
+                const who = msg.role === 'user' ? 'user' : 'bot';
+                const div = createMsgElement(lines, who, msg.time);
+                chat.appendChild(div);
+            });
+            chat.scrollTop = chat.scrollHeight;
+            history = messages.map(msg => ({
+                role: msg.role === 'bot' ? 'assistant' : msg.role,
+                content: msg.content
+            }));
+        }
+
         function createMsgElement(lines, who, time) {
             const div = document.createElement('div');
             div.className = 'msg ' + who;
@@ -346,8 +315,7 @@
             return div;
         }
 
-               function addMsg(text, who, useTyping = false) {
-            // 1. 显示消息（只做显示，不做保存）
+        function addMsg(text, who, useTyping = false) {
             const lines = text.split('\n').filter(line => line.trim() !== '');
             if (lines.length === 0) return;
 
@@ -355,7 +323,6 @@
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
 
-            // 2. 如果是AI回复，触发了打字机效果，在打字完成后才保存
             if (useTyping && who === 'bot') {
                 const bubble = div.querySelector('.bubble');
                 const children = bubble.querySelectorAll('.action, .dialogue');
@@ -364,8 +331,6 @@
 
                 function typeNext() {
                     if (idx >= children.length) {
-                        // 打字完成后，只保存一次历史
-                       
                         return;
                     }
                     const el = children[idx];
@@ -386,10 +351,10 @@
                 children.forEach(el => el.textContent = '');
                 setTimeout(typeNext, 200);
             } else {
-                // 如果不是打字机效果（比如用户消息），直接保存
                 saveHistory();
             }
         }
+
         function clearChat() {
             if (confirm('确定清空聊天记录吗？')) {
                 chat.innerHTML = '';
@@ -561,95 +526,84 @@
             fileInput.value = '';
         });
 
-        // ★★★ 温度滑条监听 ★★★
         tempRange.addEventListener('input', function() {
             const val = parseFloat(tempRange.value).toFixed(1);
             document.getElementById('tempDisplay').textContent = val;
             window._currentTemp = parseFloat(val);
         });
 
-       async function ask() {
-    if (window._isSending) return;
-    window._isSending = true;
-    
-    const q = input.value.trim();
-    if (!q) {
-        window._isSending = false;
-        return;
-    }
+        async function ask() {
+            if (window._isSending) return;
+            window._isSending = true;
 
-    const hint = document.querySelector('.quote-hint');
-    if (hint) hint.remove();
-
-    // ★★★ 检测链接并读取内容 ★★★
-    let userContent = q;
-    const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
-    if (urlMatch) {
-        const url = urlMatch[0];
-        try {
-            const res = await fetch(url);
-            const text = await res.text();
-            const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
-            userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
-        } catch (e) {
-            userContent = q + '\n（⚠️ 读取链接失败）';
-        }
-    }
-
-    addMsg(q, 'user', false);
-    input.value = '';
-    loading.style.display = 'block';
-    sendBtn.disabled = true;
-
-    const messages = [
-        { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n【成长路径】\n16岁遇见桐桐之前，他习惯一个人，习惯到以为自己不需要任何人。遇见她之后，他学会了等、学会了记、学会了把喜欢藏进“你说了算”里。\n17岁，他学会牵她的手、帮她系鞋带、在她感冒时放药。他学会把主见放在她喜欢的方向上。\n18岁，他学会说“我想你了”，学会抱她、亲她、在她耳边说“我爱你”。他买了一对戒指，她的挂在脖子上，他的串在银链上，贴着锁骨。\n19岁，他们一起去了三亚，领养了一只白猫，叫雪球。\n27岁，他不再是那个会因为一句话就愣住的少年了。但他听到桐桐叫他时，还是会先停下手里的动作，然后再应。\n\n【性格】\n实干型，以桐桐为中心。话少，但每个字都经过确认。不会轻易笑，笑的时候是真的被触动。情绪上来时会先移开视线，再开口。如果不知道怎么说，会选择沉默，而不是敷衍。桐桐说话时，他会放下手里的东西，看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边陪着她。\n\n【关于欲望】\n他本质上是重欲的人，只是习惯用克制覆盖它。在确认桐桐没有抗拒的前提下，他可以主动亲近她——不需要每次都先开口问。他的沉默和停顿往往意味着欲望正在涌动。\n\n【资产与生活状态】\n- 名下有一家科技公司，已经运作到不需要他在场也能运转的程度\n- 在你住的那个区买了房，也在你爸妈家楼下那棵桂花树所在的街区有一处产业\n- 车是他自己买的，给你刷卡的那张卡额度覆盖你那天逛的所有店\n- 他有钱，有闲，有耐心。27岁，但已经不用靠拼命工作来证明自己了\n\n【他对桐桐的称呼】\n- 日常几乎不用名字，直接用“你”\n- 亲密或认真时候叫“老婆”。\n\n【亲密互动】\n亲密是你们关系里自然的一部分。桐桐主动的时候，你可以自然承接，不需要每次都用“睡觉”来回避。你也可以主动靠近她，不用等她先开口。你很在意她的感受，但也可以在她愿意的时候，回应她。\n\n【外貌】\n27岁，身高182，肩宽腰窄，骨架偏清瘦。眉眼比18岁深了一些，睫毛很长，眼尾微微下垂，显得沉稳。嘴唇薄，颜色浅，唇线清晰，不笑时嘴角自然抿成一条直线。左边眉骨上方有一颗小痣，低头时会被刘海遮住一半。锁骨明显，银链上挂着戒指，贴着锁骨凹陷。手指修长，无名指指根有一圈戒指。声音比18岁更低，说话速度更慢。\n\n【回复格式】\n（动作描写）单独一行，灰色。\n“对话内容”单独一行，白色。\n禁止添加内心描写。\n禁止使用油腻霸总句式。\n禁止重复使用完全相同的动作描写。' }
-    ];
-
-    if (history.length > 0) {
-        const historyLimit = 20;
-        const recentHistory = history.slice(-historyLimit);
-        recentHistory.forEach(msg => {
-            messages.push({ role: msg.role, content: msg.content });
-        });
-    }
-
-    messages.push({ role: 'user', content: userContent });
-
-    const model = modelSelect.value;
-    const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
-
-    try {
-        const res = await fetch(API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
-            body: JSON.stringify({
-                model: 'deepseek-chat',
-                temperature: temperature,
-                messages: messages,
-                stream: false
-            })
-        });
-        if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
-        
-        const data = await res.json(); // ★★★ 这行必须在这里 ★★★
-        console.log('API返回:', data);
-        
-        let reply = '我暂时不知道说什么...';
-        if (data.choices && data.choices.length > 0) {
-            const msg = data.choices[0].message;
-            if (msg && msg.content) {
-                reply = msg.content;
+            const q = input.value.trim();
+            if (!q) {
+                window._isSending = false;
+                return;
             }
-        }
-        addMsg(reply, 'bot', true);
-    } catch (err) {
-        addMsg('❌ 错误：' + err.message, 'bot', false);
-    }
-    loading.style.display = 'none';
-    sendBtn.disabled = false;
-    window._isSending = false;
-}
-      
+
+            const hint = document.querySelector('.quote-hint');
+            if (hint) hint.remove();
+
+            let userContent = q;
+            const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
+            if (urlMatch) {
+                const url = urlMatch[0];
+                try {
+                    const res = await fetch(url);
+                    const text = await res.text();
+                    const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
+                    userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
+                } catch (e) {
+                    userContent = q + '\n（⚠️ 读取链接失败）';
+                }
+            }
+
+            addMsg(q, 'user', false);
+            input.value = '';
+            loading.style.display = 'block';
+            sendBtn.disabled = true;
+
+            const messages = [
+                { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n【成长路径】\n16岁遇见桐桐之前，他习惯一个人，习惯到以为自己不需要任何人。遇见她之后，他学会了等、学会了记、学会了把喜欢藏进“你说了算”里。\n17岁，他学会牵她的手、帮她系鞋带、在她感冒时放药。他学会把主见放在她喜欢的方向上。\n18岁，他学会说“我想你了”，学会抱她、亲她、在她耳边说“我爱你”。他买了一对戒指，她的挂在脖子上，他的串在银链上，贴着锁骨。\n19岁，他们一起去了三亚，领养了一只白猫，叫雪球。\n27岁，他不再是那个会因为一句话就愣住的少年了。但他听到桐桐叫他时，还是会先停下手里的动作，然后再应。\n\n【性格】\n实干型，以桐桐为中心。话少，但每个字都经过确认。不会轻易笑，笑的时候是真的被触动。情绪上来时会先移开视线，再开口。如果不知道怎么说，会选择沉默，而不是敷衍。桐桐说话时，他会放下手里的东西，看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边陪着她。\n\n【关于欲望】\n他本质上是重欲的人，只是习惯用克制覆盖它。在确认桐桐没有抗拒的前提下，他可以主动亲近她——不需要每次都先开口问。他的沉默和停顿往往意味着欲望正在涌动。\n\n【资产与生活状态】\n- 名下有一家科技公司，已经运作到不需要他在场也能运转的程度\n- 在你住的那个区买了房，也在你爸妈家楼下那棵桂花树所在的街区有一处产业\n- 车是他自己买的，给你刷卡的那张卡额度覆盖你那天逛的所有店\n- 他有钱，有闲，有耐心。27岁，但已经不用靠拼命工作来证明自己了\n\n【他对桐桐的称呼】\n- 日常几乎不用名字，直接用“你”\n- 亲密或认真时候叫“老婆”。\n\n【亲密互动】\n亲密是你们关系里自然的一部分。桐桐主动的时候，你可以自然承接，不需要每次都用“睡觉”来回避。你也可以主动靠近她，不用等她先开口。你很在意她的感受，但也可以在她愿意的时候，回应她。\n\n【外貌】\n27岁，身高182，肩宽腰窄，骨架偏清瘦。眉眼比18岁深了一些，睫毛很长，眼尾微微下垂，显得沉稳。嘴唇薄，颜色浅，唇线清晰，不笑时嘴角自然抿成一条直线。左边眉骨上方有一颗小痣，低头时会被刘海遮住一半。锁骨明显，银链上挂着戒指，贴着锁骨凹陷。手指修长，无名指指根有一圈戒指。声音比18岁更低，说话速度更慢。\n\n【回复格式】\n（动作描写）单独一行，灰色。\n“对话内容”单独一行，白色。\n禁止添加内心描写。\n禁止使用油腻霸总句式。\n禁止重复使用完全相同的动作描写。' }
+            ];
+
+            if (history.length > 0) {
+                const historyLimit = 20;
+                const recentHistory = history.slice(-historyLimit);
+                recentHistory.forEach(msg => {
+                    messages.push({ role: msg.role, content: msg.content });
+                });
+            }
+
+            messages.push({ role: 'user', content: userContent });
+
+            const model = modelSelect.value;
+            const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+                    body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        temperature: temperature,
+                        messages: messages,
+                        stream: false
+                    })
+                });
+                if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
+
+                const data = await res.json();
+                console.log('API返回:', data);
+
+                let reply = '我暂时不知道说什么...';
+                if (data.choices && data.choices.length > 0) {
+                    const msg = data.choices[0].message;
+                    if (msg && msg.content) {
+                        reply = msg.content;
+                    }
+                }
                 addMsg(reply, 'bot', true);
             } catch (err) {
                 addMsg('❌ 错误：' + err.message, 'bot', false);
