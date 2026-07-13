@@ -78,27 +78,32 @@
             </div>
             <button class="header-btn" onclick="clearChat()">清空</button>
         </div>
+
         <div id="chat"></div>
         <div id="loading">⏳ 对方正在输入...</div>
+
         <div id="inputArea">
             <input type="text" id="input" placeholder="输入消息...">
             <label for="fileInput">📎</label>
             <input type="file" id="fileInput" multiple accept=".txt,.pdf,.doc,.docx,.md,.json,.csv">
             <button id="send">发送</button>
         </div>
+
         <div id="searchModal">
             <button class="close-btn" onclick="toggleSearch()">✕</button>
             <input type="text" id="searchInput" placeholder="搜索历史记录..." oninput="searchHistory()">
             <div id="searchResults"></div>
         </div>
+
         <div class="msg-menu" id="msgMenu">
             <div class="item" onclick="replyToMsg()">💬 引用回复</div>
             <div class="item" onclick="editMsg()">✏️ 编辑</div>
             <div class="item danger" onclick="deleteMsg()">🗑️ 删除</div>
         </div>
     </div>
+
     <script>
-        const API_KEY = "sk-9f69d9c2e1444cce8e63ef289b880ab1";//这是[桐桐]的专属AI助手
+        const API_KEY = "sk-9f69d9c2e1444cce8e63ef289b880ab1";//桐桐的专属林林酱！
         const API_URL = "https://api.deepseek.com/chat/completions";
 
         const chat = document.getElementById('chat');
@@ -203,172 +208,125 @@
             }));
         }
 
+        // ============================================================
+        //  ★★★ 核心修复：保证能渲染的 createMsgElement ★★★
+        // ============================================================
         function createMsgElement(lines, who, time) {
-    // 确保 lines 是数组
-    if (!Array.isArray(lines)) {
-        lines = [String(lines)];
-    }
-    // 确保每个元素都是字符串
-    const safeLines = lines.map(line => String(line).trim()).filter(line => line !== '');
+            const div = document.createElement('div');
+            div.className = 'msg ' + who;
+            div.dataset.time = time || new Date().toLocaleString();
 
-    const div = document.createElement('div');
-    div.className = 'msg ' + who;
-    div.dataset.time = time || new Date().toLocaleString();
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.textContent = who === 'user' ? '我' : '他';
 
-    // 头像
-    const avatar = document.createElement('div');
-    avatar.className = 'avatar';
-    avatar.style.cursor = 'pointer';
-    avatar.title = '点击更换头像';
-    const avatarKey = who === 'user' ? 'userAvatar' : 'botAvatar';
-    const defaultAvatar = who === 'user' ? '我' : '他';
-    let currentAvatar = localStorage.getItem(avatarKey);
-    if (!currentAvatar || currentAvatar === 'undefined' || currentAvatar === 'null' || currentAvatar === '') {
-        currentAvatar = defaultAvatar;
-    }
-    if (currentAvatar.startsWith('data:image') || currentAvatar.startsWith('http')) {
-        avatar.style.backgroundImage = 'url(' + currentAvatar + ')';
-        avatar.style.backgroundSize = 'cover';
-        avatar.style.backgroundPosition = 'center';
-        avatar.textContent = '';
-    } else {
-        avatar.textContent = currentAvatar;
-        avatar.style.background = 'transparent';
-        avatar.style.fontSize = '18px';
-        avatar.style.fontWeight = 'bold';
-        avatar.style.color = '#ccc';
-        avatar.style.display = 'flex';
-        avatar.style.alignItems = 'center';
-        avatar.style.justifyContent = 'center';
-        avatar.style.border = 'none';
-    }
-    avatar.onclick = function() {
-        const inp = document.createElement('input');
-        inp.type = 'file';
-        inp.accept = 'image/*';
-        inp.onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                const dataUrl = ev.target.result;
-                const key = who === 'user' ? 'userAvatar' : 'botAvatar';
-                localStorage.setItem(key, dataUrl);
-                document.querySelectorAll('.msg .avatar').forEach(function(el) {
-                    const isUser = el.closest('.msg').classList.contains('user');
-                    if ((who === 'user' && isUser) || (who === 'bot' && !isUser)) {
-                        el.style.backgroundImage = 'url(' + dataUrl + ')';
-                        el.style.backgroundSize = 'cover';
-                        el.style.backgroundPosition = 'center';
-                        el.textContent = '';
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+
+            // ★★★ 强制渲染：不管 lines 是什么格式，都显示出来 ★★★
+            if (Array.isArray(lines) && lines.length > 0) {
+                lines.forEach((line, idx) => {
+                    const p = document.createElement('div');
+                    if (idx % 2 === 0) {
+                        p.className = 'action';
+                    } else {
+                        p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
                     }
+                    p.textContent = line;
+                    bubble.appendChild(p);
                 });
-                alert('✅ 头像已更换！');
-            };
-            reader.readAsDataURL(file);
-        };
-        inp.click();
-    };
-
-    // ★★★ 气泡：直接显示所有行 ★★★
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    safeLines.forEach((line, idx) => {
-        const p = document.createElement('div');
-        // 偶数行作为动作（灰色），奇数行作为对话（白色）
-        if (idx % 2 === 0) {
-            p.className = 'action';
-        } else {
-            p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
-        }
-        p.textContent = line;
-        bubble.appendChild(p);
-    });
-
-    // 时间戳
-    const ts = document.createElement('div');
-    ts.className = 'timestamp';
-    ts.textContent = div.dataset.time;
-
-    const bubbleWrap = document.createElement('div');
-    bubbleWrap.className = 'bubble-wrap';
-    bubbleWrap.appendChild(bubble);
-    bubbleWrap.appendChild(ts);
-
-    // 组装
-    if (who === 'user') {
-        div.style.justifyContent = 'flex-end';
-        div.style.flexDirection = 'row';
-        div.appendChild(bubbleWrap);
-        div.appendChild(avatar);
-    } else {
-        div.style.justifyContent = 'flex-start';
-        div.style.flexDirection = 'row';
-        div.appendChild(avatar);
-        div.appendChild(bubbleWrap);
-    }
-
-    // 长按菜单
-    let longPressTimer;
-    div.addEventListener('touchstart', function(e) {
-        longPressTimer = setTimeout(function() {
-            showMenu(e, div);
-        }, 600);
-    });
-    div.addEventListener('touchend', function() { clearTimeout(longPressTimer); });
-    div.addEventListener('touchmove', function() { clearTimeout(longPressTimer); });
-
-    return div;
-}
-        function addMsg(text, who, useTyping = false) {
-    // ★★★ 暴力修复：确保 text 是字符串 ★★★
-    const safeText = String(text || '');
-    console.log('addMsg收到的text:', safeText);
-
-    // 按行分割，过滤空行
-    let lines = safeText.split('\n').filter(line => line.trim() !== '');
-    // 如果分割后没有内容，直接把整个文本作为一行
-    if (lines.length === 0) {
-        lines = [safeText];
-    }
-    // ★★★ 强制转成纯字符串数组 ★★★
-    const stringLines = lines.map(line => String(line).trim());
-
-    const div = createMsgElement(stringLines, who);
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
-
-    if (useTyping && who === 'bot') {
-        const bubble = div.querySelector('.bubble');
-        const children = bubble.querySelectorAll('.action, .dialogue');
-        let idx = 0;
-        const speed = 25;
-
-        function typeNext() {
-            if (idx >= children.length) {
-                return;
+            } else {
+                // 兜底：如果 lines 是空或不是数组，直接显示文本
+                const p = document.createElement('div');
+                p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+                p.textContent = String(lines);
+                bubble.appendChild(p);
             }
-            const el = children[idx];
-            const fullText = el.textContent;
-            el.textContent = '';
-            let charIdx = 0;
-            const interval = setInterval(() => {
-                el.textContent += fullText[charIdx];
-                charIdx++;
-                chat.scrollTop = chat.scrollHeight;
-                if (charIdx >= fullText.length) {
-                    clearInterval(interval);
-                    idx++;
-                    setTimeout(typeNext, 40);
-                }
-            }, speed);
+
+            const ts = document.createElement('div');
+            ts.className = 'timestamp';
+            ts.textContent = div.dataset.time;
+
+            const bubbleWrap = document.createElement('div');
+            bubbleWrap.className = 'bubble-wrap';
+            bubbleWrap.appendChild(bubble);
+            bubbleWrap.appendChild(ts);
+
+            if (who === 'user') {
+                div.style.justifyContent = 'flex-end';
+                div.style.flexDirection = 'row';
+                div.appendChild(bubbleWrap);
+                div.appendChild(avatar);
+            } else {
+                div.style.justifyContent = 'flex-start';
+                div.style.flexDirection = 'row';
+                div.appendChild(avatar);
+                div.appendChild(bubbleWrap);
+            }
+
+            // 长按删除（简化版）
+            div.addEventListener('touchstart', function(e) {
+                let timer = setTimeout(() => {
+                    if (confirm('删除这条消息？')) {
+                        div.remove();
+                        saveHistory();
+                    }
+                }, 600);
+                div._timer = timer;
+            });
+            div.addEventListener('touchend', function() { clearTimeout(div._timer); });
+            div.addEventListener('touchmove', function() { clearTimeout(div._timer); });
+
+            return div;
         }
-        children.forEach(el => el.textContent = '');
-        setTimeout(typeNext, 200);
-    } else {
-        saveHistory();
-    }
-}
+
+        function addMsg(text, who, useTyping = false) {
+            const safeText = String(text || '');
+            console.log('addMsg收到的text:', safeText);
+
+            let lines = safeText.split('\n').filter(line => line.trim() !== '');
+            if (lines.length === 0) {
+                lines = [safeText];
+            }
+            const stringLines = lines.map(line => String(line).trim());
+
+            const div = createMsgElement(stringLines, who);
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+
+            if (useTyping && who === 'bot') {
+                const bubble = div.querySelector('.bubble');
+                const children = bubble.querySelectorAll('.action, .dialogue');
+                let idx = 0;
+                const speed = 25;
+
+                function typeNext() {
+                    if (idx >= children.length) {
+                        saveHistory();
+                        return;
+                    }
+                    const el = children[idx];
+                    const fullText = el.textContent;
+                    el.textContent = '';
+                    let charIdx = 0;
+                    const interval = setInterval(() => {
+                        el.textContent += fullText[charIdx];
+                        charIdx++;
+                        chat.scrollTop = chat.scrollHeight;
+                        if (charIdx >= fullText.length) {
+                            clearInterval(interval);
+                            idx++;
+                            setTimeout(typeNext, 40);
+                        }
+                    }, speed);
+                }
+                children.forEach(el => el.textContent = '');
+                setTimeout(typeNext, 200);
+            } else {
+                saveHistory();
+            }
+        }
+
         function clearChat() {
             if (confirm('确定清空聊天记录吗？')) {
                 chat.innerHTML = '';
@@ -600,7 +558,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
                     body: JSON.stringify({
-                        model: 'deepseek-v4-flash',
+                        model: 'deepseek-chat',
                         temperature: temperature,
                         messages: messages,
                         stream: false
@@ -618,7 +576,6 @@
                         reply = msg.content;
                     }
                 }
-                console.log('提取的reply:',reply);
                 addMsg(reply, 'bot', true);
             } catch (err) {
                 addMsg('❌ 错误：' + err.message, 'bot', false);
