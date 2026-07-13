@@ -180,7 +180,7 @@
                 return tx.complete;
             }).catch(err => console.warn('保存失败:', err));
              // 3. ★★★ 存到 Cloudflare KV ★★★
-    const url = 'https://linji.18665918439.workers.dev/api/history';
+    const url = 'https://linji-history.18665918439.workers.dev/api/history';
     fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
