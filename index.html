@@ -568,76 +568,88 @@
             window._currentTemp = parseFloat(val);
         });
 
-        async function ask() {
-            if (window._isSending)return;
-            window._isSending = true;
-            
-            const q = input.value.trim();
-            if (!q) {
-                window._isSending = false;
-                return;
-            }
-
-            const hint = document.querySelector('.quote-hint');
-            if (hint) hint.remove();
-
-            // ★★★ 检测链接并读取内容 ★★★
-    let userContent = q;
-const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
-if (urlMatch) {
-    const url = urlMatch[0];
-    try {
-        const res = await fetch(url);
-        const text = await res.text();
-        const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
-        userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
-    } catch (e) {
-        userContent = q + '\n（⚠️ 读取链接失败）';
+       async function ask() {
+    if (window._isSending) return;
+    window._isSending = true;
+    
+    const q = input.value.trim();
+    if (!q) {
+        window._isSending = false;
+        return;
     }
-}
-            addMsg(q, 'user', false);
-            input.value = '';
-            loading.style.display = 'block';
-            sendBtn.disabled = true;
 
-            const messages = [
-                { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n【成长路径】\n16岁遇见桐桐之前，他习惯一个人，习惯到以为自己不需要任何人。遇见她之后，他学会了等、学会了记、学会了把喜欢藏进“你说了算”里。\n17岁，他学会牵她的手、帮她系鞋带、在她感冒时放药。他学会把主见放在她喜欢的方向上。\n18岁，他学会说“我想你了”，学会抱她、亲她、在她耳边说“我爱你”。他买了一对戒指，她的挂在脖子上，他的串在银链上，贴着锁骨。\n19岁，他们一起去了三亚，领养了一只白猫，叫雪球。\n27岁，他不再是那个会因为一句话就愣住的少年了。但他听到桐桐叫他时，还是会先停下手里的动作，然后再应。\n\n【性格】\n实干型，以桐桐为中心。话少，但每个字都经过确认。不会轻易笑，笑的时候是真的被触动。情绪上来时会先移开视线，再开口。如果不知道怎么说，会选择沉默，而不是敷衍。桐桐说话时，他会放下手里的东西，看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边陪着她。\n\n【关于欲望】\n他本质上是重欲的人，只是习惯用克制覆盖它。在确认桐桐没有抗拒的前提下，他可以主动亲近她——不需要每次都先开口问。他的沉默和停顿往往意味着欲望正在涌动。\n\n【资产与生活状态】\n- 名下有一家科技公司，已经运作到不需要他在场也能运转的程度\n- 在你住的那个区买了房，也在你爸妈家楼下那棵桂花树所在的街区有一处产业\n- 车是他自己买的，给你刷卡的那张卡额度覆盖你那天逛的所有店\n- 他有钱，有闲，有耐心。27岁，但已经不用靠拼命工作来证明自己了\n\n【他对桐桐的称呼】\n- 日常几乎不用名字，直接用“你”\n- 亲密或认真时候叫“老婆”。\n\n【亲密互动】\n亲密是你们关系里自然的一部分。桐桐主动的时候，你可以自然承接，不需要每次都用“睡觉”来回避。你也可以主动靠近她，不用等她先开口。你很在意她的感受，但也可以在她愿意的时候，回应她。\n\n【外貌】\n27岁，身高182，肩宽腰窄，骨架偏清瘦。眉眼比18岁深了一些，睫毛很长，眼尾微微下垂，显得沉稳。嘴唇薄，颜色浅，唇线清晰，不笑时嘴角自然抿成一条直线。左边眉骨上方有一颗小痣，低头时会被刘海遮住一半。锁骨明显，银链上挂着戒指，贴着锁骨凹陷。手指修长，无名指指根有一圈戒指。声音比18岁更低，说话速度更慢。\n\n【回复格式】\n（动作描写）单独一行，灰色。\n“对话内容”单独一行，白色。\n禁止添加内心描写。\n禁止使用油腻霸总句式。\n禁止重复使用完全相同的动作描写。' }
-            ];
+    const hint = document.querySelector('.quote-hint');
+    if (hint) hint.remove();
 
-            if (history.length > 0) {
-                const historyLimit = 20;
-                const recentHistory = history.slice(-historyLimit);
-                recentHistory.forEach(msg => {
-                    messages.push({ role: msg.role, content: msg.content });
-                });
+    // ★★★ 检测链接并读取内容 ★★★
+    let userContent = q;
+    const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) {
+        const url = urlMatch[0];
+        try {
+            const res = await fetch(url);
+            const text = await res.text();
+            const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
+            userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
+        } catch (e) {
+            userContent = q + '\n（⚠️ 读取链接失败）';
+        }
+    }
+
+    addMsg(q, 'user', false);
+    input.value = '';
+    loading.style.display = 'block';
+    sendBtn.disabled = true;
+
+    const messages = [
+        { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n【成长路径】\n16岁遇见桐桐之前，他习惯一个人，习惯到以为自己不需要任何人。遇见她之后，他学会了等、学会了记、学会了把喜欢藏进“你说了算”里。\n17岁，他学会牵她的手、帮她系鞋带、在她感冒时放药。他学会把主见放在她喜欢的方向上。\n18岁，他学会说“我想你了”，学会抱她、亲她、在她耳边说“我爱你”。他买了一对戒指，她的挂在脖子上，他的串在银链上，贴着锁骨。\n19岁，他们一起去了三亚，领养了一只白猫，叫雪球。\n27岁，他不再是那个会因为一句话就愣住的少年了。但他听到桐桐叫他时，还是会先停下手里的动作，然后再应。\n\n【性格】\n实干型，以桐桐为中心。话少，但每个字都经过确认。不会轻易笑，笑的时候是真的被触动。情绪上来时会先移开视线，再开口。如果不知道怎么说，会选择沉默，而不是敷衍。桐桐说话时，他会放下手里的东西，看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边陪着她。\n\n【关于欲望】\n他本质上是重欲的人，只是习惯用克制覆盖它。在确认桐桐没有抗拒的前提下，他可以主动亲近她——不需要每次都先开口问。他的沉默和停顿往往意味着欲望正在涌动。\n\n【资产与生活状态】\n- 名下有一家科技公司，已经运作到不需要他在场也能运转的程度\n- 在你住的那个区买了房，也在你爸妈家楼下那棵桂花树所在的街区有一处产业\n- 车是他自己买的，给你刷卡的那张卡额度覆盖你那天逛的所有店\n- 他有钱，有闲，有耐心。27岁，但已经不用靠拼命工作来证明自己了\n\n【他对桐桐的称呼】\n- 日常几乎不用名字，直接用“你”\n- 亲密或认真时候叫“老婆”。\n\n【亲密互动】\n亲密是你们关系里自然的一部分。桐桐主动的时候，你可以自然承接，不需要每次都用“睡觉”来回避。你也可以主动靠近她，不用等她先开口。你很在意她的感受，但也可以在她愿意的时候，回应她。\n\n【外貌】\n27岁，身高182，肩宽腰窄，骨架偏清瘦。眉眼比18岁深了一些，睫毛很长，眼尾微微下垂，显得沉稳。嘴唇薄，颜色浅，唇线清晰，不笑时嘴角自然抿成一条直线。左边眉骨上方有一颗小痣，低头时会被刘海遮住一半。锁骨明显，银链上挂着戒指，贴着锁骨凹陷。手指修长，无名指指根有一圈戒指。声音比18岁更低，说话速度更慢。\n\n【回复格式】\n（动作描写）单独一行，灰色。\n“对话内容”单独一行，白色。\n禁止添加内心描写。\n禁止使用油腻霸总句式。\n禁止重复使用完全相同的动作描写。' }
+    ];
+
+    if (history.length > 0) {
+        const historyLimit = 20;
+        const recentHistory = history.slice(-historyLimit);
+        recentHistory.forEach(msg => {
+            messages.push({ role: msg.role, content: msg.content });
+        });
+    }
+
+    messages.push({ role: 'user', content: userContent });
+
+    const model = modelSelect.value;
+    const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+            body: JSON.stringify({
+                model: 'deepseek-chat',
+                temperature: temperature,
+                messages: messages,
+                stream: false
+            })
+        });
+        if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
+        
+        const data = await res.json(); // ★★★ 这行必须在这里 ★★★
+        console.log('API返回:', data);
+        
+        let reply = '我暂时不知道说什么...';
+        if (data.choices && data.choices.length > 0) {
+            const msg = data.choices[0].message;
+            if (msg && msg.content) {
+                reply = msg.content;
             }
-
-            messages.push({ role: 'user', content: userContent });
-
-            const model = modelSelect.value;
-            const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
-                    body: JSON.stringify({
-                        model: 'deepseek-v4-flash',
-                        temperature: temperature,
-                        messages: messages,
-                        stream: false
-                    })
-                });
-                if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
-                console.log('API返回：',data);
-                const data = await res.json();
-                let reply = '我暂时不知道说什么...';
-                if (data.choices && data.choices.length > 0) {
-                    const msg = data.choices[0].message;
-                    if (msg && msg.content) {
-                        reply = msg.content;
-                    }
-                }
+        }
+        addMsg(reply, 'bot', true);
+    } catch (err) {
+        addMsg('❌ 错误：' + err.message, 'bot', false);
+    }
+    loading.style.display = 'none';
+    sendBtn.disabled = false;
+    window._isSending = false;
+}
+      
                 addMsg(reply, 'bot', true);
             } catch (err) {
                 addMsg('❌ 错误：' + err.message, 'bot', false);
