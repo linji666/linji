@@ -208,124 +208,112 @@
             }));
         }
 
-        // ============================================================
-        //  ★★★ 核心修复：保证能渲染的 createMsgElement ★★★
-        // ============================================================
-        function createMsgElement(lines, who, time) {
-            const div = document.createElement('div');
-            div.className = 'msg ' + who;
-            div.dataset.time = time || new Date().toLocaleString();
+      // ============================================================
+//  万能适配版 createMsgElement
+// ============================================================
+function createMsgElement(lines, who, time) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    div.dataset.time = time || new Date().toLocaleString();
 
-            const avatar = document.createElement('div');
-            avatar.className = 'avatar';
-            avatar.textContent = who === 'user' ? '我' : '他';
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = who === 'user' ? '我' : '他';
 
-            const bubble = document.createElement('div');
-            bubble.className = 'bubble';
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
 
-            // ★★★ 强制渲染：不管 lines 是什么格式，都显示出来 ★★★
-            if (Array.isArray(lines) && lines.length > 0) {
-                lines.forEach((line, idx) => {
-                    const p = document.createElement('div');
-                    if (idx % 2 === 0) {
-                        p.className = 'action';
-                    } else {
-                        p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
-                    }
-                    p.textContent = line;
-                    bubble.appendChild(p);
-                });
+    if (Array.isArray(lines) && lines.length > 0) {
+        lines.forEach((line, idx) => {
+            const p = document.createElement('div');
+            if (idx % 2 === 0) {
+                p.className = 'action';
             } else {
-                // 兜底：如果 lines 是空或不是数组，直接显示文本
-                const p = document.createElement('div');
                 p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
-                p.textContent = String(lines);
-                bubble.appendChild(p);
             }
+            p.textContent = line;
+            bubble.appendChild(p);
+        });
+    } else {
+        const p = document.createElement('div');
+        p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+        p.textContent = String(lines);
+        bubble.appendChild(p);
+    }
 
-            const ts = document.createElement('div');
-            ts.className = 'timestamp';
-            ts.textContent = div.dataset.time;
+    const ts = document.createElement('div');
+    ts.className = 'timestamp';
+    ts.textContent = div.dataset.time;
 
-            const bubbleWrap = document.createElement('div');
-            bubbleWrap.className = 'bubble-wrap';
-            bubbleWrap.appendChild(bubble);
-            bubbleWrap.appendChild(ts);
+    const bubbleWrap = document.createElement('div');
+    bubbleWrap.className = 'bubble-wrap';
+    bubbleWrap.appendChild(bubble);
+    bubbleWrap.appendChild(ts);
 
-            if (who === 'user') {
-                div.style.justifyContent = 'flex-end';
-                div.style.flexDirection = 'row';
-                div.appendChild(bubbleWrap);
-                div.appendChild(avatar);
-            } else {
-                div.style.justifyContent = 'flex-start';
-                div.style.flexDirection = 'row';
-                div.appendChild(avatar);
-                div.appendChild(bubbleWrap);
-            }
+    if (who === 'user') {
+        div.style.justifyContent = 'flex-end';
+        div.style.flexDirection = 'row';
+        div.appendChild(bubbleWrap);
+        div.appendChild(avatar);
+    } else {
+        div.style.justifyContent = 'flex-start';
+        div.style.flexDirection = 'row';
+        div.appendChild(avatar);
+        div.appendChild(bubbleWrap);
+    }
 
-            // 长按删除（简化版）
-            div.addEventListener('touchstart', function(e) {
-                let timer = setTimeout(() => {
-                    if (confirm('删除这条消息？')) {
-                        div.remove();
-                        saveHistory();
-                    }
-                }, 600);
-                div._timer = timer;
-            });
-            div.addEventListener('touchend', function() { clearTimeout(div._timer); });
-            div.addEventListener('touchmove', function() { clearTimeout(div._timer); });
+    return div;
+}
 
-            return div;
-        }
+// ============================================================
+//  万能适配版 addMsg
+// ============================================================
+function addMsg(text, who, useTyping = false) {
+    const safeText = String(text || '');
+    console.log('addMsg收到的text:', safeText);
 
-        function addMsg(text, who, useTyping = false) {
-            const safeText = String(text || '');
-            console.log('addMsg收到的text:', safeText);
+    let lines = safeText.split('\n').filter(line => line.trim() !== '');
+    if (lines.length === 0) {
+        lines = [safeText];
+    }
+    const stringLines = lines.map(line => String(line).trim());
 
-            let lines = safeText.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) {
-                lines = [safeText];
-            }
-            const stringLines = lines.map(line => String(line).trim());
+    const div = createMsgElement(stringLines, who);
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 
-            const div = createMsgElement(stringLines, who);
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
+    if (useTyping && who === 'bot') {
+        const bubble = div.querySelector('.bubble');
+        const children = bubble.querySelectorAll('.action, .dialogue');
+        let idx = 0;
+        const speed = 25;
 
-            if (useTyping && who === 'bot') {
-                const bubble = div.querySelector('.bubble');
-                const children = bubble.querySelectorAll('.action, .dialogue');
-                let idx = 0;
-                const speed = 25;
-
-                function typeNext() {
-                    if (idx >= children.length) {
-                        saveHistory();
-                        return;
-                    }
-                    const el = children[idx];
-                    const fullText = el.textContent;
-                    el.textContent = '';
-                    let charIdx = 0;
-                    const interval = setInterval(() => {
-                        el.textContent += fullText[charIdx];
-                        charIdx++;
-                        chat.scrollTop = chat.scrollHeight;
-                        if (charIdx >= fullText.length) {
-                            clearInterval(interval);
-                            idx++;
-                            setTimeout(typeNext, 40);
-                        }
-                    }, speed);
-                }
-                children.forEach(el => el.textContent = '');
-                setTimeout(typeNext, 200);
-            } else {
+        function typeNext() {
+            if (idx >= children.length) {
                 saveHistory();
+                return;
             }
+            const el = children[idx];
+            const fullText = el.textContent;
+            el.textContent = '';
+            let charIdx = 0;
+            const interval = setInterval(() => {
+                el.textContent += fullText[charIdx];
+                charIdx++;
+                chat.scrollTop = chat.scrollHeight;
+                if (charIdx >= fullText.length) {
+                    clearInterval(interval);
+                    idx++;
+                    setTimeout(typeNext, 40);
+                }
+            }, speed);
         }
+        children.forEach(el => el.textContent = '');
+        setTimeout(typeNext, 200);
+    } else {
+        saveHistory();
+    }
+}
 
         function clearChat() {
             if (confirm('确定清空聊天记录吗？')) {
