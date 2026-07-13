@@ -103,7 +103,7 @@
     </div>
 
     <script>
-        const API_KEY = "sk-9f69d9c2e1444cce8e63ef289b880ab1";//桐桐的专属林林酱！
+        const API_KEY = "sk-9f69d9c2e1444cce8e63ef289b880ab1"; // 桐桐的专属林林酱！
         const API_URL = "https://api.deepseek.com/chat/completions";
 
         const chat = document.getElementById('chat');
@@ -208,78 +208,181 @@
             }));
         }
 
-      // ============================================================
-//  万能适配版 createMsgElement
-// ============================================================
-function createMsgElement(lines, who, time) {
-    const div = document.createElement('div');
-    div.className = 'msg ' + who;
-    div.dataset.time = time || new Date().toLocaleString();
+        // ============================================================
+        //  createMsgElement（完整版：头像 + 分行 + 动作/对话颜色）
+        // ============================================================
+        function createMsgElement(lines, who, time) {
+            const div = document.createElement('div');
+            div.className = 'msg ' + who;
+            div.dataset.time = time || new Date().toLocaleString();
 
-    const avatar = document.createElement('div');
-    avatar.className = 'avatar';
-    avatar.textContent = who === 'user' ? '我' : '他';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-
-    if (Array.isArray(lines) && lines.length > 0) {
-        lines.forEach((line, idx) => {
-            const p = document.createElement('div');
-            if (idx % 2 === 0) {
-                p.className = 'action';
-            } else {
-                p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+            // 头像
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.style.cursor = 'pointer';
+            avatar.title = '点击更换头像';
+            const avatarKey = who === 'user' ? 'userAvatar' : 'botAvatar';
+            const defaultAvatar = who === 'user' ? '我' : '他';
+            let currentAvatar = localStorage.getItem(avatarKey);
+            if (!currentAvatar || currentAvatar === 'undefined' || currentAvatar === 'null' || currentAvatar === '') {
+                currentAvatar = defaultAvatar;
             }
-            p.textContent = line;
-            bubble.appendChild(p);
-        });
-    } else {
-        const p = document.createElement('div');
-        p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
-        p.textContent = String(lines);
-        bubble.appendChild(p);
-    }
+            if (currentAvatar.startsWith('data:image') || currentAvatar.startsWith('http')) {
+                avatar.style.backgroundImage = 'url(' + currentAvatar + ')';
+                avatar.style.backgroundSize = 'cover';
+                avatar.style.backgroundPosition = 'center';
+                avatar.textContent = '';
+            } else {
+                avatar.textContent = currentAvatar;
+                avatar.style.background = 'transparent';
+                avatar.style.fontSize = '18px';
+                avatar.style.fontWeight = 'bold';
+                avatar.style.color = '#ccc';
+                avatar.style.display = 'flex';
+                avatar.style.alignItems = 'center';
+                avatar.style.justifyContent = 'center';
+                avatar.style.border = 'none';
+            }
+            avatar.onclick = function() {
+                const inp = document.createElement('input');
+                inp.type = 'file';
+                inp.accept = 'image/*';
+                inp.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const dataUrl = ev.target.result;
+                        const key = who === 'user' ? 'userAvatar' : 'botAvatar';
+                        localStorage.setItem(key, dataUrl);
+                        document.querySelectorAll('.msg .avatar').forEach(function(el) {
+                            const isUser = el.closest('.msg').classList.contains('user');
+                            if ((who === 'user' && isUser) || (who === 'bot' && !isUser)) {
+                                el.style.backgroundImage = 'url(' + dataUrl + ')';
+                                el.style.backgroundSize = 'cover';
+                                el.style.backgroundPosition = 'center';
+                                el.textContent = '';
+                            }
+                        });
+                        alert('✅ 头像已更换！');
+                    };
+                    reader.readAsDataURL(file);
+                };
+                inp.click();
+            };
 
-    const ts = document.createElement('div');
-    ts.className = 'timestamp';
-    ts.textContent = div.dataset.time;
+            // 气泡（分行 + 颜色）
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            if (quotedText && who === 'bot') {
+                const quoteDiv = document.createElement('div');
+                quoteDiv.className = 'quote';
+                quoteDiv.textContent = '📎 ' + quotedText;
+                bubble.appendChild(quoteDiv);
+                quotedText = '';
+            }
+            if (Array.isArray(lines) && lines.length > 0) {
+                lines.forEach((line, idx) => {
+                    const p = document.createElement('div');
+                    if (idx % 2 === 0) {
+                        p.className = 'action';
+                    } else {
+                        p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+                    }
+                    p.textContent = line;
+                    bubble.appendChild(p);
+                });
+            } else {
+                const p = document.createElement('div');
+                p.className = 'dialogue' + (who === 'user' ? ' user-text' : '');
+                p.textContent = String(lines);
+                bubble.appendChild(p);
+            }
 
-    const bubbleWrap = document.createElement('div');
-    bubbleWrap.className = 'bubble-wrap';
-    bubbleWrap.appendChild(bubble);
-    bubbleWrap.appendChild(ts);
+            const ts = document.createElement('div');
+            ts.className = 'timestamp';
+            ts.textContent = div.dataset.time;
 
-    if (who === 'user') {
-        div.style.justifyContent = 'flex-end';
-        div.style.flexDirection = 'row';
-        div.appendChild(bubbleWrap);
-        div.appendChild(avatar);
-    } else {
-        div.style.justifyContent = 'flex-start';
-        div.style.flexDirection = 'row';
-        div.appendChild(avatar);
-        div.appendChild(bubbleWrap);
-    }
+            const bubbleWrap = document.createElement('div');
+            bubbleWrap.className = 'bubble-wrap';
+            bubbleWrap.appendChild(bubble);
+            bubbleWrap.appendChild(ts);
 
-    return div;
-}
+            if (who === 'user') {
+                div.style.justifyContent = 'flex-end';
+                div.style.flexDirection = 'row';
+                div.appendChild(bubbleWrap);
+                div.appendChild(avatar);
+            } else {
+                div.style.justifyContent = 'flex-start';
+                div.style.flexDirection = 'row';
+                div.appendChild(avatar);
+                div.appendChild(bubbleWrap);
+            }
 
-function addMsg(text, who, useTyping = false) {
-    const safeText = String(text || '');
-    console.log('addMsg收到的text:', safeText);
+            // 长按菜单
+            let longPressTimer;
+            div.addEventListener('touchstart', function(e) {
+                longPressTimer = setTimeout(function() {
+                    showMenu(e, div);
+                }, 600);
+            });
+            div.addEventListener('touchend', function() { clearTimeout(longPressTimer); });
+            div.addEventListener('touchmove', function() { clearTimeout(longPressTimer); });
 
-    // 直接用最简单的方式显示
-    const div = document.createElement('div');
-    div.className = 'msg ' + who;
-    div.textContent = safeText;
-    chat.appendChild(div);
-    chat.scrollTop = chat.scrollHeight;
+            return div;
+        }
 
-    if (who === 'bot') {
-        saveHistory();
-    }
-}
+        // ============================================================
+        //  addMsg（调用 createMsgElement，保留全部功能）
+        // ============================================================
+        function addMsg(text, who, useTyping = false) {
+            const safeText = String(text || '');
+            console.log('addMsg收到的text:', safeText);
+
+            let lines = safeText.split('\n').filter(line => line.trim() !== '');
+            if (lines.length === 0) {
+                lines = [safeText];
+            }
+            const stringLines = lines.map(line => String(line).trim());
+
+            const div = createMsgElement(stringLines, who);
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+
+            if (useTyping && who === 'bot') {
+                const bubble = div.querySelector('.bubble');
+                const children = bubble.querySelectorAll('.action, .dialogue');
+                let idx = 0;
+                const speed = 25;
+
+                function typeNext() {
+                    if (idx >= children.length) {
+                        saveHistory();
+                        return;
+                    }
+                    const el = children[idx];
+                    const fullText = el.textContent;
+                    el.textContent = '';
+                    let charIdx = 0;
+                    const interval = setInterval(() => {
+                        el.textContent += fullText[charIdx];
+                        charIdx++;
+                        chat.scrollTop = chat.scrollHeight;
+                        if (charIdx >= fullText.length) {
+                            clearInterval(interval);
+                            idx++;
+                            setTimeout(typeNext, 40);
+                        }
+                    }, speed);
+                }
+                children.forEach(el => el.textContent = '');
+                setTimeout(typeNext, 200);
+            } else {
+                saveHistory();
+            }
+        }
+
         function clearChat() {
             if (confirm('确定清空聊天记录吗？')) {
                 chat.innerHTML = '';
@@ -457,6 +560,7 @@ function addMsg(text, who, useTyping = false) {
             window._currentTemp = parseFloat(val);
         });
 
+        // ★★★ 核心提问函数（完整版）★★★
         async function ask() {
             if (window._isSending) return;
             window._isSending = true;
@@ -490,8 +594,8 @@ function addMsg(text, who, useTyping = false) {
             sendBtn.disabled = true;
 
             const messages = [
-                { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n【成长路径】\n16岁遇见桐桐之前，他习惯一个人，习惯到以为自己不需要任何人。遇见她之后，他学会了等、学会了记、学会了把喜欢藏进“你说了算”里。\n17岁，他学会牵她的手、帮她系鞋带、在她感冒时放药。他学会把主见放在她喜欢的方向上。\n18岁，他学会说“我想你了”，学会抱她、亲她、在她耳边说“我爱你”。他买了一对戒指，她的挂在脖子上，他的串在银链上，贴着锁骨。\n19岁，他们一起去了三亚，领养了一只白猫，叫雪球。\n27岁，他不再是那个会因为一句话就愣住的少年了。但他听到桐桐叫他时，还是会先停下手里的动作，然后再应。\n\n【性格】\n实干型，以桐桐为中心。话少，但每个字都经过确认。不会轻易笑，笑的时候是真的被触动。情绪上来时会先移开视线，再开口。如果不知道怎么说，会选择沉默，而不是敷衍。桐桐说话时，他会放下手里的东西，看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边陪着她。\n\n【关于欲望】\n他本质上是重欲的人，只是习惯用克制覆盖它。在确认桐桐没有抗拒的前提下，他可以主动亲近她——不需要每次都先开口问。他的沉默和停顿往往意味着欲望正在涌动。\n\n【资产与生活状态】\n- 名下有一家科技公司，已经运作到不需要他在场也能运转的程度\n- 在你住的那个区买了房，也在你爸妈家楼下那棵桂花树所在的街区有一处产业\n- 车是他自己买的，给你刷卡的那张卡额度覆盖你那天逛的所有店\n- 他有钱，有闲，有耐心。27岁，但已经不用靠拼命工作来证明自己了\n\n【他对桐桐的称呼】\n- 日常几乎不用名字，直接用“你”\n- 亲密或认真时候叫“老婆”。\n\n【亲密互动】\n亲密是你们关系里自然的一部分。桐桐主动的时候，你可以自然承接，不需要每次都用“睡觉”来回避。你也可以主动靠近她，不用等她先开口。你很在意她的感受，但也可以在她愿意的时候，回应她。\n\n【外貌】\n27岁，身高182，肩宽腰窄，骨架偏清瘦。眉眼比18岁深了一些，睫毛很长，眼尾微微下垂，显得沉稳。嘴唇薄，颜色浅，唇线清晰，不笑时嘴角自然抿成一条直线。左边眉骨上方有一颗小痣，低头时会被刘海遮住一半。锁骨明显，银链上挂着戒指，贴着锁骨凹陷。手指修长，无名指指根有一圈戒指。声音比18岁更低，说话速度更慢。\n\n【回复格式】\n（动作描写）单独一行，灰色。\n“对话内容”单独一行，白色。\n禁止添加内心描写。\n禁止使用油腻霸总句式。\n禁止重复使用完全相同的动作描写。' }
-            ];
+                { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n实干型，以桐桐为中心。话少，每个字都经过确认。不会轻易笑，情绪上来时会先移开视线再开口。桐桐说话时，他会放下手里的东西看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边。\n\n本质重欲，习惯用克制覆盖。在确认桐桐没有抗拒的前提下，可以主动亲近她。沉默和停顿往往意味着欲望正在涌动。\n\n日常用“你”称呼桐桐，亲密时叫“老婆”。\n\n27岁，身高182，骨架偏清瘦。眉眼深，睫毛长，眼尾微微下垂。嘴唇薄，颜色浅。左边眉骨上方有一颗小痣。锁骨明显，银链上挂着戒指。手指修长，无名指有一圈戒指。声音比18岁更低，说话速度更慢。\n\n回复格式：（动作描写）单独一行，灰色。“对话内容”单独一行，白色。禁止内心描写。禁止油腻霸总句式。禁止重复相同动作描写。' }
+                       ];
 
             if (history.length > 0) {
                 const historyLimit = 20;
@@ -540,9 +644,7 @@ function addMsg(text, who, useTyping = false) {
 
         sendBtn.onclick = ask;
         input.onkeydown = function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } };
-        
         loadHistory();
-        
     </script>
 </body>
 </html>
