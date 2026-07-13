@@ -316,8 +316,12 @@
         }
 
         function addMsg(text, who, useTyping = false) {
+            console.log('addMsg收到的text:',text);
             const lines = text.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) return;
+            if (lines.length === 0) {
+                console.warn('addMsg:lines为空,text可能是undefined或空字符串');
+                return;
+            }
 
             const div = createMsgElement(lines, who);
             chat.appendChild(div);
