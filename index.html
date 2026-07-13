@@ -211,7 +211,7 @@
         }
 
         // 2. 从 Cloudflare KV 读取
-        const response = await fetch('https://linji.18665918439.workers.dev/api/history');
+        const response = await fetch('https://linji-history.18665918439.workers.dev/api/history');
         const data = await response.json();
         if (data && data.messages) {
             displayMessages(data.messages);
