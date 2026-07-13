@@ -317,49 +317,54 @@
         }
 
         function addMsg(text, who, useTyping = false) {
-            console.log('addMsg收到的text:',text);
-            const lines = text.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) {
-                console.warn('addMsg:lines为空,text可能是undefined或空字符串');
+    // ★★★ 暴力修复：确保 text 是字符串 ★★★
+    const safeText = String(text || '');
+    console.log('addMsg收到的text:', safeText);
+
+    // 按行分割，过滤空行
+    let lines = safeText.split('\n').filter(line => line.trim() !== '');
+    // 如果分割后没有内容，直接把整个文本作为一行
+    if (lines.length === 0) {
+        lines = [safeText];
+    }
+    // ★★★ 强制转成纯字符串数组 ★★★
+    const stringLines = lines.map(line => String(line).trim());
+
+    const div = createMsgElement(stringLines, who);
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+
+    if (useTyping && who === 'bot') {
+        const bubble = div.querySelector('.bubble');
+        const children = bubble.querySelectorAll('.action, .dialogue');
+        let idx = 0;
+        const speed = 25;
+
+        function typeNext() {
+            if (idx >= children.length) {
                 return;
             }
-
-            const div = createMsgElement(lines, who);
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-
-            if (useTyping && who === 'bot') {
-                const bubble = div.querySelector('.bubble');
-                const children = bubble.querySelectorAll('.action, .dialogue');
-                let idx = 0;
-                const speed = 25;
-
-                function typeNext() {
-                    if (idx >= children.length) {
-                        return;
-                    }
-                    const el = children[idx];
-                    const fullText = el.textContent;
-                    el.textContent = '';
-                    let charIdx = 0;
-                    const interval = setInterval(() => {
-                        el.textContent += fullText[charIdx];
-                        charIdx++;
-                        chat.scrollTop = chat.scrollHeight;
-                        if (charIdx >= fullText.length) {
-                            clearInterval(interval);
-                            idx++;
-                            setTimeout(typeNext, 40);
-                        }
-                    }, speed);
+            const el = children[idx];
+            const fullText = el.textContent;
+            el.textContent = '';
+            let charIdx = 0;
+            const interval = setInterval(() => {
+                el.textContent += fullText[charIdx];
+                charIdx++;
+                chat.scrollTop = chat.scrollHeight;
+                if (charIdx >= fullText.length) {
+                    clearInterval(interval);
+                    idx++;
+                    setTimeout(typeNext, 40);
                 }
-                children.forEach(el => el.textContent = '');
-                setTimeout(typeNext, 200);
-            } else {
-                saveHistory();
-            }
+            }, speed);
         }
-
+        children.forEach(el => el.textContent = '');
+        setTimeout(typeNext, 200);
+    } else {
+        saveHistory();
+    }
+}
         function clearChat() {
             if (confirm('确定清空聊天记录吗？')) {
                 chat.innerHTML = '';
