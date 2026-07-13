@@ -336,52 +336,21 @@
         // ============================================================
         //  addMsg（调用 createMsgElement，保留全部功能）
         // ============================================================
-        function addMsg(text, who, useTyping = false) {
-            const safeText = String(text || '');
-            console.log('addMsg收到的text:', safeText);
+       function addMsg(text, who, useTyping = false) {
+    const safeText = String(text || '');
+    console.log('addMsg收到的text:', safeText);
 
-            let lines = safeText.split('\n').filter(line => line.trim() !== '');
-            if (lines.length === 0) {
-                lines = [safeText];
-            }
-            const stringLines = lines.map(line => String(line).trim());
+    // ★★★ 直接用最简单的方式显示 ★★★
+    const div = document.createElement('div');
+    div.className = 'msg ' + who;
+    div.textContent = safeText;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
 
-            const div = createMsgElement(stringLines, who);
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-
-            if (useTyping && who === 'bot') {
-                const bubble = div.querySelector('.bubble');
-                const children = bubble.querySelectorAll('.action, .dialogue');
-                let idx = 0;
-                const speed = 25;
-
-                function typeNext() {
-                    if (idx >= children.length) {
-                        saveHistory();
-                        return;
-                    }
-                    const el = children[idx];
-                    const fullText = el.textContent;
-                    el.textContent = '';
-                    let charIdx = 0;
-                    const interval = setInterval(() => {
-                        el.textContent += fullText[charIdx];
-                        charIdx++;
-                        chat.scrollTop = chat.scrollHeight;
-                        if (charIdx >= fullText.length) {
-                            clearInterval(interval);
-                            idx++;
-                            setTimeout(typeNext, 40);
-                        }
-                    }, speed);
-                }
-                children.forEach(el => el.textContent = '');
-                setTimeout(typeNext, 200);
-            } else {
-                saveHistory();
-            }
-        }
+    if (who === 'bot') {
+        saveHistory();
+         }
+    }
 
         function clearChat() {
             if (confirm('确定清空聊天记录吗？')) {
