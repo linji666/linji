@@ -204,6 +204,7 @@
         }
 
         function createMsgElement(lines, who, time) {
+            console.log('createMsgElement收到的lines',lines);
             const div = document.createElement('div');
             div.className = 'msg ' + who;
             div.dataset.time = time || new Date().toLocaleString();
