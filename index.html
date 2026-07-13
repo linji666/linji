@@ -592,17 +592,19 @@
                 });
                 if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
 
-                const data = await res.json();
-                console.log('API返回:', data);
+               const data = await res.json();
+console.log('API返回:', data);
 
-                let reply = '我暂时不知道说什么...';
-                if (data.choices && data.choices.length > 0) {
-                    const msg = data.choices[0].message;
-                    if (msg && msg.content) {
-                        reply = msg.content;
-                    }
-                }
-                addMsg(reply, 'bot', true);
+let reply = '我暂时不知道说什么...';
+if (data.choices && data.choices.length > 0) {
+    // ★★★ 兼容两种格式 ★★★
+    const msg = data.choices[0].message;
+    const content = msg?.content || msg?.message?.content || data.choices[0].delta?.content;
+    if (content) {
+        reply = content;
+    }
+}
+addMsg(reply, 'bot', true);
             } catch (err) {
                 addMsg('❌ 错误：' + err.message, 'bot', false);
             }
