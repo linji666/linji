@@ -575,9 +575,9 @@ function addMsg(text, who, useTyping = false) {
 
         sendBtn.onclick = ask;
         input.onkeydown = function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } };
-        (async function() {
-            await loadHistory();
-        })();
+        
+        loadHistory();
+        
     </script>
 </body>
 </html>
