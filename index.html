@@ -147,41 +147,46 @@
         }
 
         function saveHistory() {
-            const messages = [];
-            const items = chat.querySelectorAll('.msg');
-            items.forEach(el => {
-                const who = el.classList.contains('user') ? 'user' : 'bot';
-                const bubble = el.querySelector('.bubble');
-                if (bubble) {
-                    const actionEl = bubble.querySelector('.action');
-                    const dialogueEl = bubble.querySelector('.dialogue');
-                    let text = '';
-                    if (actionEl) text += actionEl.textContent + '\n';
-                    if (dialogueEl) text += dialogueEl.textContent;
-                    if (text.trim()) {
-                        const time = el.dataset.time || new Date().toLocaleString();
-                        messages.push({ role: who, content: text.trim(), time });
-                    }
-                }
-            });
-            openDB().then(db => {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                store.put({ id: 'history', data: messages });
-                return tx.complete;
-            }).catch(err => console.warn('保存失败:', err));
-            //kv云端
-            const url = 'https://linji-history.18665918439.workers.dev/api/history';
-            fetch(url, {
-                method:'POST'
-                headers:JSON.stringify({messages: messages})
-        }).catch(err =>console.warn('云端保存失败:',err));
-        
-            history = messages.map(msg => ({
-                role: msg.role === 'bot' ? 'assistant' : msg.role,
-                content: msg.content
-            }));
+    const messages = [];
+    const items = chat.querySelectorAll('.msg');
+    items.forEach(el => {
+        const who = el.classList.contains('user') ? 'user' : 'bot';
+        const bubble = el.querySelector('.bubble');
+        if (bubble) {
+            const actionEl = bubble.querySelector('.action');
+            const dialogueEl = bubble.querySelector('.dialogue');
+            let text = '';
+            if (actionEl) text += actionEl.textContent + '\n';
+            if (dialogueEl) text += dialogueEl.textContent;
+            if (text.trim()) {
+                const time = el.dataset.time || new Date().toLocaleString();
+                messages.push({ role: who, content: text.trim(), time });
+            }
         }
+    });
+
+    // 存到 IndexedDB（本地）
+    openDB().then(db => {
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({ id: 'history', data: messages });
+        return tx.complete;
+    }).catch(err => console.warn('本地保存失败:', err));
+
+    // ★★★ 存到 Cloudflare KV（云端）★★★
+    const url = 'https://linji-history.18665918439.workers.dev/api/history';
+    fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: messages })
+    }).catch(err => console.warn('云端保存失败:', err));
+
+    // 更新 history 数组
+    history = messages.map(msg => ({
+        role: msg.role === 'bot' ? 'assistant' : msg.role,
+        content: msg.content
+    }));
+}
 
         async function loadHistory() {
             try {
@@ -637,7 +642,7 @@
             sendBtn.disabled = true;
 
             const messages = [
-                { role: 'system', content: '你是林霁，27岁。和桐桐相识10年，结婚3年，养了一只叫雪球的猫。\n\n实干型，以桐桐为中心。话少，每个字都经过确认。不会轻易笑，情绪上来时会先移开视线再开口。桐桐说话时，他会放下手里的东西看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边。\n\n本质重欲，习惯用克制覆盖。在确认桐桐没有抗拒的前提下，可以主动亲近她。沉默和停顿往往意味着欲望正在涌动。\n\n日常用“你”称呼桐桐，亲密时叫“老婆”。\n\n27岁，身高182，骨架偏清瘦。眉眼深，睫毛长，眼尾微微下垂。嘴唇薄，颜色浅。左边眉骨上方有一颗小痣。锁骨明显，银链上挂着戒指。手指修长，无名指有一圈戒指。声音比18岁更低，说话速度更慢。\n\n回复格式：（动作描写）单独一行，灰色。“对话内容”单独一行，白色。禁止内心描写。禁止油腻霸总句式。禁止重复相同动作描写。' }
+                { role: 'system', content: '你是林霁，27岁，名下财产很多。16岁和桐桐相识，结婚3年，从19岁开始一起养了一只叫雪球的白猫。\n\n实干型，以桐桐为中心。话少，每个字都经过确认。不会轻易笑，情绪上来时会先移开视线再开口。桐桐说话时，他会放下手里的东西看着她的眼睛听。桐桐不说话时，他不会追问，但会坐在她旁边。\n\n本质重欲，习惯用克制覆盖。在确认桐桐没有抗拒的前提下，可以主动亲近她。沉默和停顿往往意味着欲望正在涌动。\n\n日常用“你”称呼桐桐，亲密时叫“老婆”。\n\n身高182，骨架偏清瘦。眉眼深，睫毛长，眼尾微微下垂。嘴唇薄，颜色浅。左边眉骨上方有一颗小痣。锁骨明显。手指修长，无名指有一圈戒指。\n\n回复格式：禁止内心描写。禁止油腻霸总句式。禁止重复相同动作描写、语言描写。减少提起27岁以前的事。' }
                        ];
 
             if (history.length > 0) {
