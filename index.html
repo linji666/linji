@@ -170,6 +170,13 @@
                 store.put({ id: 'history', data: messages });
                 return tx.complete;
             }).catch(err => console.warn('保存失败:', err));
+            //kv云端
+            const url = 'https://linji-history.18665918439.workers.dev/api/history';
+            fetch(url, {
+                method:'POST'
+                headers:JSON.stringify({messages: messages})
+        }).catch(err =>console.warn('云端保存失败:',err));
+        
             history = messages.map(msg => ({
                 role: msg.role === 'bot' ? 'assistant' : msg.role,
                 content: msg.content
