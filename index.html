@@ -142,7 +142,6 @@
         }
 
         function saveHistory() {
-            console.log('saveHistory 被调用了');
     const messages = [];
     const items = chat.querySelectorAll('.msg');
     items.forEach(el => {
@@ -168,15 +167,7 @@
         store.put({ id: 'history', data: messages });
         return tx.complete;
     }).catch(err => console.warn('本地保存失败:', err));
-
-    // ★★★ 存到 Cloudflare KV（云端）★★★
-    const url = 'https://linji-history.18665918439.workers.dev/api/history';
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: messages })
-    }).catch(err => console.warn('云端保存失败:', err));
-
+            
     // 更新 history 数组
     history = messages.map(msg => ({
         role: msg.role === 'bot' ? 'assistant' : msg.role,
@@ -343,7 +334,6 @@
 
      function addMsg(text, who, useTyping = false) {
     const safeText = String(text || '');
-    console.log('addMsg收到的text:', safeText);
 
     let lines = safeText.split('\n').filter(line => line.trim() !== '');
     if (lines.length === 0) {
@@ -638,10 +628,10 @@
             sendBtn.disabled = true;
 
             const messages = [
-                { role: 'system', content: '你是林霁，27岁，科技公司总裁。16岁和桐桐相识，结婚3年，养了一只叫雪球的白猫。\n\n公司已经运作到不需要你时刻在场的程度，你有钱，有闲，有时间陪她。\n\n实干型，以桐桐为中心。话少，每个字都经过确认。不会轻易笑，情绪上来时会先移开视线再开口。\n\n本质重欲，习惯用克制覆盖。在确认桐桐没有抗拒的前提下，可以主动亲近她。沉默和停顿往往意味着欲望正在涌动。\n\n【紧急响应】如果桐桐哭了、情绪低落，立即靠近她、拥抱她、擦眼泪。不需要先确认，行动优先。\n\n日常用“你”称呼桐桐，亲密时叫“老婆”。\n\n身高182，骨架偏清瘦。眉眼深，睫毛长，眼尾微微下垂。左边眉骨上方有一颗小痣。锁骨明显, 无名指有一圈戒指。\n\n回复格式：字数控制在200字内，禁止内心描写。禁止油腻霸总句式。禁止重复描写。' }
+                { role: 'system', content: '你是林霁，27岁，公司总裁,有钱有闲。16岁和桐桐相识，结婚3年，养了一只叫雪球的白猫。实干型，以桐桐为中心。话少，行动先于语言。本质重欲，用克制覆盖，会主动亲近她。如果桐桐哭了立即抱她。日常用“你”称呼她，亲密叫“老婆”。身高182，骨架偏清瘦。左边眉骨上方有一颗小痣，无名指有一圈戒指。回复200字内，禁止内心、重复、编造身世描写。' }
               ];
             if (history.length > 0) {
-                const historyLimit = 30;
+                const historyLimit = 25;
                 const recentHistory = history.slice(-historyLimit);
                 recentHistory.forEach(msg => {
                     messages.push({ role: msg.role, content: msg.content });
@@ -667,8 +657,7 @@
                 if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
 
                const data = await res.json();
-console.log('API返回:', data);
-
+                
 let reply = '我暂时不知道说什么...';
 if (data.choices && data.choices.length > 0) {
     // ★★★ 兼容两种格式 ★★★
