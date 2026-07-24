@@ -66,10 +66,6 @@
     <div class="app" id="app">
         <div class="header">
             <div class="header-left">
-                <select id="modelSelect">
-                    <option value="deepseek-v4-flash">⚡ Flash</option>
-                    <option value="deepseek-v4-pro">🧠 Pro</option>
-                </select>
                 <span class="temp-label">🌡️</span>
                 <input type="range" id="tempRange" min="0" max="1.2" step="0.1" value="0.85">
                 <span id="tempDisplay" style="font-size:12px;color:#888;">0.85</span>
@@ -110,7 +106,6 @@
         const input = document.getElementById('input');
         const sendBtn = document.getElementById('send');
         const loading = document.getElementById('loading');
-        const modelSelect = document.getElementById('modelSelect');
         const tempRange = document.getElementById('tempRange');
         const tempDisplay = document.getElementById('tempDisplay');
         const fileInput = document.getElementById('fileInput');
@@ -655,7 +650,7 @@
 
             messages.push({ role: 'user', content: userContent });
 
-            const model = modelSelect.value;
+            const model = 'deepseek-v3-0324';
             const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
 
             try {
@@ -663,7 +658,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
                     body: JSON.stringify({
-                        model: 'deepseek-chat',
+                        model: 'deepseek-v3-0324',
                         temperature: temperature,
                         messages: messages,
                         stream: false
