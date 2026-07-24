@@ -650,7 +650,7 @@
 
             messages.push({ role: 'user', content: userContent });
 
-            const model = 'deepseek-v3-0324';
+            const model = 'deepseek-v4-flash';
             const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
 
             try {
@@ -658,7 +658,7 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
                     body: JSON.stringify({
-                        model: 'deepseek-v3-0324',
+                        model: 'deepseek-v4-flash',
                         temperature: temperature,
                         messages: messages,
                         stream: false
