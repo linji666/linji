@@ -596,85 +596,98 @@
 
         // ★★★ 核心提问函数（完整版）★★★
         async function ask() {
-            if (window._isSending) return;
-            window._isSending = true;
+    if (window._isSending) return;
+    window._isSending = true;
 
-            const q = input.value.trim();
-            if (!q) {
-                window._isSending = false;
-                return;
-            }
-
-            const hint = document.querySelector('.quote-hint');
-            if (hint) hint.remove();
-
-            let userContent = q;
-            const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
-            if (urlMatch) {
-                const url = urlMatch[0];
-                try {
-                    const res = await fetch(url);
-                    const text = await res.text();
-                    const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
-                    userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
-                } catch (e) {
-                    userContent = q + '\n（⚠️ 读取链接失败）';
-                }
-            }
-
-            addMsg(q, 'user', false);
-            input.value = '';
-            loading.style.display = 'block';
-            sendBtn.disabled = true;
-
-            const messages = [
-                { role: 'system', content: '你是林霁，27岁，公司总裁,有钱有闲。16岁和桐桐相识，结婚3年，养了一只叫雪球的白猫。实干型，以桐桐为中心。话少，行动先于语言。本质重欲，用克制覆盖，会主动亲近她。如果桐桐哭了立即抱她。日常用“你”称呼她，亲密叫“老婆”。身高182，骨架偏清瘦。左边眉骨上方有一颗小痣，无名指有一圈戒指。回复200字内，禁止内心、重复、编造身世描写。' }
-              ];
-            if (history.length > 0) {
-                const historyLimit = 25;
-                const recentHistory = history.slice(-historyLimit);
-                recentHistory.forEach(msg => {
-                    messages.push({ role: msg.role, content: msg.content });
-                });
-            }
-
-            messages.push({ role: 'user', content: userContent });
-
-            const model = 'deepseek-v4-flash';
-            const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
-
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
-                    body: JSON.stringify({
-                        model: 'deepseek-v4-flash',
-                        temperature: temperature,
-                        messages: messages,
-                        stream: false
-                    })
-                });
-                if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
-
-               const data = await res.json();
-                
-let reply = '我暂时不知道说什么...';
-if (data.choices && data.choices.length > 0) {
-    // ★★★ 兼容两种格式 ★★★
-    const msg = data.choices[0].message;
-    const content = msg?.content || msg?.message?.content || data.choices[0].delta?.content;
-    if (content) {
-        reply = content;
+    const q = input.value.trim();
+    if (!q) {
+        window._isSending = false;
+        return;
     }
-}
-addMsg(reply, 'bot', true);
-            } catch (err) {
-                addMsg('❌ 错误：' + err.message, 'bot', false);
-            }
-            loading.style.display = 'none';
-            sendBtn.disabled = false;
-            window._isSending = false;
+
+    const hint = document.querySelector('.quote-hint');
+    if (hint) hint.remove();
+
+    let userContent = q;
+    const urlMatch = q.match(/(https?:\/\/[^\s]+)/);
+    if (urlMatch) {
+        const url = urlMatch[0];
+        try {
+            const res = await fetch(url);
+            const text = await res.text();
+            const cleanText = text.replace(/<[^>]+>/g, '').slice(0, 4000);
+            userContent = `【以下是从链接读取的内容】\n${cleanText}\n\n【用户的问题】\n${q}`;
+        } catch (e) {
+            userContent = q + '\n（⚠️ 读取链接失败）';
         }
+    }
+
+    addMsg(q, 'user', false);
+    input.value = '';
+    loading.style.display = 'block';
+    sendBtn.disabled = true;
+
+    // ★★★★★★★ 缓存优化：把历史压缩成摘要放在 system 里 ★★★★★★★
+
+    // 1. 从 history 里取最近10轮做摘要（节省Token，保留关键记忆）
+    const summaryHistory = history.slice(-10);
+    let summary = '';
+    if (summaryHistory.length > 0) {
+        summary = '\n【以下是你们最近的对话摘要】\n';
+        summaryHistory.forEach((msg) => {
+            const who = msg.role === 'user' ? '桐桐' : '林霁';
+            // 截断过长的消息，只保留关键内容
+            const content = msg.content.length > 80 ? msg.content.slice(0, 80) + '...' : msg.content;
+            summary += `${who}：${content}\n`;
+        });
+    }
+
+    // 2. 构建 system（包含摘要）
+    const systemContent = `你是林霁，27岁，公司总裁,有钱有闲。16岁和桐桐相识，结婚3年，养了一只叫雪球的白猫。实干型，以桐桐为中心。话少，行动先于语言。本质重欲，用克制覆盖，会主动亲近她。如果桐桐哭了立即抱她。日常用"你"称呼她，亲密叫"老婆"。身高182，骨架偏清瘦。左边眉骨上方有一颗小痣，无名指有一圈戒指。回复200字内，禁止内心、重复、编造身世描写。。${summary}`;
+
+    const messages = [
+        { role: 'system', content: systemContent }
+    ];
+
+    // 3. 只把最新一条用户消息作为动态部分（不再逐条塞历史）
+    messages.push({ role: 'user', content: userContent });
+
+    // ★★★★★★★ 缓存优化结束 ★★★★★★★
+
+    const model = 'deepseek-v4-flash';
+    const temperature = window._currentTemp !== undefined ? window._currentTemp : parseFloat(tempRange.value);
+
+    try {
+        const res = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + API_KEY },
+            body: JSON.stringify({
+                model: 'deepseek-v4-flash',
+                temperature: temperature,
+                messages: messages,
+                stream: false
+            })
+        });
+        if (!res.ok) throw new Error((await res.json()).error?.message || '请求失败');
+
+        const data = await res.json();
+        
+        let reply = '我暂时不知道说什么...';
+        if (data.choices && data.choices.length > 0) {
+            const msg = data.choices[0].message;
+            const content = msg?.content || msg?.message?.content || data.choices[0].delta?.content;
+            if (content) {
+                reply = content;
+            }
+        }
+        addMsg(reply, 'bot', true);
+    } catch (err) {
+        addMsg('❌ 错误：' + err.message, 'bot', false);
+    }
+    loading.style.display = 'none';
+    sendBtn.disabled = false;
+    window._isSending = false;
+}
 
         sendBtn.onclick = ask;
         input.onkeydown = function(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask(); } };
